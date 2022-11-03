@@ -59,17 +59,13 @@ class ControlHub(object):
                     data = message[1][0:payloadSize]
                     #print("payload size: ", payloadSize)
 
+                    largePayload = False
                     # if payload is larger than initial receive
                     if payloadSize > (1024 - lenPayloadSize):
                         remainingPayloadSize = payloadSize - (1024 - lenPayloadSize - 2)
-                        
-                        # receive in powers of 2
-                        recvSize = 2
-                        while recvSize < remainingPayloadSize:
-                            recvSize *= 2
-                        
-                        message = conn.recv(recvSize)
+                        message = conn.recv(remainingPayloadSize)
                         data += message
+                        largePayload = True
                 except Exception:
                     #print("Client disconnected")
                     conn.close()
@@ -85,7 +81,8 @@ class ControlHub(object):
                     #fileSize = data['data'][0]
                     filePath = data['data'][1]
                     file = open(filePath, 'wb')
-                    file.write(originalMessage[lenPayloadSize+payloadSize+2:])
+                    if not largePayload:
+                        file.write(originalMessage[lenPayloadSize+payloadSize+2:])
                     read = conn.recv(1024)
                     while read:
                         file.write(read)
@@ -161,7 +158,7 @@ class Client(object):
         except Exception:
             pass
 
-    def _sendFile(self, file, destinationPath):
+    def _sendFile(self, file, destinationPath, data):
         file.seek(0, os.SEEK_END)
         fileSize = file.tell()
         fileSock = socket.socket()
@@ -169,7 +166,7 @@ class Client(object):
         fileSock.sendall(bytes(self.name + "#f", encoding="utf-8"))
 
         # send file info
-        payload = _preparePayload(self.name, 'file', [fileSize, destinationPath])
+        payload = _preparePayload(self.name, 'file', [fileSize, destinationPath, data])
         _sendPayload(payload, fileSock)
 
         # send file
@@ -188,10 +185,10 @@ class Client(object):
     def sendData(self, data):
         payload = _preparePayload(self.name, 'data', data)
         _sendPayload(payload, self.s)
-    
-    def sendFile(self, sourcePath, destinationPath):  # sourcePath/destinationPath = path/to/file.png
+
+    def sendFile(self, sourcePath, destinationPath, data=None):  # sourcePath/destinationPath = path/to/file.png
         # try open
         file = open(sourcePath, 'rb')
 
-        sendFileThread = threading.Thread(target=self._sendFile, args=(file, destinationPath), daemon=True)
+        sendFileThread = threading.Thread(target=self._sendFile, args=(file, destinationPath, data), daemon=True)
         sendFileThread.start()
