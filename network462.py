@@ -93,6 +93,7 @@ class ControlHub(object):
 
                     # cleanup and send confirmation
                     file.close()
+                    self.queue.append(data)
                     payload = _preparePayload('control','file', 0)
                     _sendPayload(payload, conn)
                     conn.close()
