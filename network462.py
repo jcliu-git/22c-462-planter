@@ -34,25 +34,29 @@ class ControlHub(object):
         self.acceptThread.start()
 
     # TODO: find out why this isn't being called
+    # is called on raspi but not on windows
     def __del__(self):
-        print("destructing")
+        #print("destructing")
         self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()
         for client in self.clients:
-            print("try", client)
+            #print("try", client)
             self.clients[client][0].shutdown(socket.SHUT_RDWR)
             self.clients[client][0].close()
             self.clients[client][1].join()
-            print("successful", client)
-        print("try destruct accept")
+            #print("successful", client)
+        #print("try destruct accept")
         self.acceptThread.join()
-        print("successful destruct accept")
+        #print("successful destruct accept")
 
     # listens for messages on each socket
-    def _listen(self, name, conn, addr):
+    def _listen(self, name, conn, addr, residual):
             while True:
                 try:
                     originalMessage = conn.recv(1024)
+                    if residual:
+                        originalMessage = residual + originalMessage
+                        residual = None
                     message = originalMessage.splitlines()
                     lenPayloadSize = len(message[0])
                     payloadSize = int(message[0])
@@ -66,8 +70,8 @@ class ControlHub(object):
                         message = conn.recv(remainingPayloadSize)
                         data += message
                         largePayload = True
-                except Exception:
-                    #print("Client disconnected")
+                except Exception as e:
+                    print("Client disconnected:", e)
                     conn.close()
                     del self.clients[name]
                     break
@@ -104,12 +108,19 @@ class ControlHub(object):
             while True:
                 conn, addr = self.s.accept()
                 # get name from client
-                name = conn.recv(1024).decode('utf-8')
-                thread = threading.Thread(target=self._listen, args=(name, conn, addr), daemon=True)
+                originalMessage = conn.recv(64)
+                message = originalMessage.splitlines()
+                name = message[0].decode('utf-8')
+                if len(message) > 1:
+                    residual = originalMessage[len(message[0])+2:]
+                else:
+                    residual = None
+                thread = threading.Thread(target=self._listen, args=(name, conn, addr, residual), daemon=True)
                 thread.start()
                 self.clients[name] = [conn, thread]
-        except Exception:
-            pass
+        except Exception as e:
+            print("accepting", name,"failed:", e)
+            conn.close()
 
     def sendData(self, name, data):
         conn = self.clients[name][0]
@@ -123,6 +134,7 @@ class Client(object):
     port = None
     queue = []
     listenThread = None
+    fileCounter = 0
 
     def __init__(self, name, host, port):
         self.name = name
@@ -130,7 +142,7 @@ class Client(object):
         self.port =  port
         self.s = socket.socket()
         self.s.connect((self.host, self.port))
-        self.s.sendall(bytes(name, encoding="utf-8"))
+        self.s.sendall(bytes(name + "\r\n", encoding="utf-8"))
         listenThread = threading.Thread(target=self._listen, daemon=True)
         listenThread.start()
 
@@ -163,7 +175,9 @@ class Client(object):
         fileSize = file.tell()
         fileSock = socket.socket()
         fileSock.connect((self.host, self.port))
-        fileSock.sendall(bytes(self.name + "#f", encoding="utf-8"))
+        nameAppend = self.name + "_f" + "%s" % self.fileCounter
+        self.fileCounter += 1
+        fileSock.sendall(bytes(nameAppend + "\r\n", encoding="utf-8"))
 
         # send file info
         payload = _preparePayload(self.name, 'file', [fileSize, destinationPath, data])
