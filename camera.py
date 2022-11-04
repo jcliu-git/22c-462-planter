@@ -13,11 +13,7 @@ client = Client('test','127.0.0.1', 32132)
 pir = MotionSensor(4)
 camera = PiCamera()
 #database
-hostname = 'ec2-44-209-57-4.compute-1.amazonaws.com'
-database = 'da41gg09sivbgs'
-username = 'wzgfnyeewdbzlx'
-pwd = '68b169eefd466125c85c00c9bf7a28c2a4137ea409591093a62b680eb20af23e'
-port_id = 5432
+
 
 conn = psycopg2.connect(
         host = hostname,
