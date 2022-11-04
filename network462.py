@@ -1,114 +1,214 @@
+"""
+Library for CSCE 462 Final Project
+"""
+# TODO: clean up imports
 import socket
 import json
 import threading
-from time import sleep
+import os
+
+#from time import sleep
+
+def _send_payload(payload, payload_socket):
+    jsonpayload = json.dumps(payload)
+    payload_socket.sendall(bytes(f"{len(jsonpayload)}\r\n" + jsonpayload, encoding="utf-8"))
+
+def _prepare_payload(name, message_type, data):
+    payload = {
+        "name": name,
+        "type": message_type,
+        "data": data
+    }
+    return payload
 
 class ControlHub(object):
-    s = None
-    acceptThread = None
-    clients = {}
+    """
+    Control hub class
+    =================
+    Attributes:
+        queue       queue for received messages and files
+    
+    Methods:
+        sendData(name, data)
+            Args:
+                name (string): name of receiving pi
+                data (any): any json serializable data
+    """
+    _s = None
+    _accept_thread = None
+    _clients = {}
     queue = []
 
     def __init__(self, host, port):
-        self.s = socket.socket()
-        self.s.bind((host,port))
-        self.s.listen()
+        """_summary_
+
+        Args:
+            host (_type_): _description_
+            port (_type_): _description_
+        """
+        self._s = socket.socket()
+        self._s.bind((host,port))
+        self._s.listen()
 
         # daemon threads are not an elegant solution to stopping threads but it will do
-        self.acceptThread = threading.Thread(target=self.accept, daemon=True)
-        self.acceptThread.start()
-
-    # listens for messages on each socket
-    def listen(self, conn, addr):
-        try:
-            while True:
-                message = conn.recv(1024)
-                message = message.splitlines()
-
-                lenPayloadSize = len(message[0])
-                payloadSize = int(message[0])
-                data = message[1]
-                #print("payload size: ", payloadSize)
-
-                # if payload is larger than initial receive
-                if payloadSize > (1024 - lenPayloadSize):
-                    message = conn.recv(payloadSize - (1024 - lenPayloadSize - 2))
-                    data += message
-
-                data = json.loads(data)
-
-                # handle different types of messages
-                if data['type'] == 'data':
-                    self.queue.append(data)
-                elif data['type'] == 'file':
-                    # TODO: implement file transfer
-                    pass
-        except Exception:
-            # TODO: clean up from clients list
-            pass
-
-    # continuously accept clients
-    def accept(self):
-        try:
-            while True:
-                conn, addr = self.s.accept()
-                # get name from client
-                name = conn.recv(1024).decode('utf-8')
-                thread = threading.Thread(target=self.listen, args=(conn, addr), daemon=True)
-                thread.start()
-                self.clients[name] = [conn, thread]
-        except Exception:
-            pass
-
-    def sendData(self, name, data):
-        conn = self.clients[name][0]
-        payload = {
-            "name": 'control',
-            "type": 'data',
-            "data": data
-        }
-        jsonpayload = json.dumps(payload)
-        conn.sendall(bytes("%d\r\n" % len(jsonpayload) + jsonpayload , encoding="utf-8"))
+        self._accept_thread = threading.Thread(target=self._accept, daemon=True)
+        self._accept_thread.start()
 
     # TODO: find out why this isn't being called
+    # is called on raspi but not on windows
     def __del__(self):
-        print("destructing")
-        self.s.shutdown(0)
-        self.s.close()
-        for client in self.clients:
-            print("try", client)
-            self.clients[client][0].shutdown(0)
-            self.clients[client][0].close()
-            self.clients[client][1].join()
-            print("successful", client)
-        print("try destruct accept")
-        self.acceptThread.join()
-        print("successful destruct accept")
-    
-class Client(object):
-    s = None
-    name = ''
-    queue = []
-    listenThread = None
+        #print("destructing")
+        self._s.shutdown(socket.SHUT_RDWR)
+        self._s.close()
+        for client in self._clients.items():
+            #print("try", client)
+            client[0].shutdown(socket.SHUT_RDWR)
+            client[0].close()
+            client[1].join()
+            #print("successful", client)
+        #print("try destruct accept")
+        self._accept_thread.join()
+        #print("successful destruct accept")
 
-    def __init__(self, name, host, port):
-        self.name = name
-        self.s = socket.socket()
-        self.s.connect((host,port))
-        self.s.sendall(bytes(name, encoding="utf-8"))
-        listenThread = threading.Thread(target=self.listen, daemon=True)
-        listenThread.start()
+    # listens for messages on each socket
+    def _listen(self, name, conn, addr, residual):
+        while True:
+            try:
+                original_message = conn.recv(1024)
 
-    def listen(self):
+                # edge case handling
+                if residual:
+                    original_message = residual + original_message
+                    residual = None
+
+                message = original_message.splitlines()
+                length_payload_size = len(message[0])
+                payload_size = int(message[0])
+                data = message[1][0:payload_size]
+                #print("payload size: ", payloadSize)
+
+                large_payload = False
+                # if payload is larger than initial receive
+                if payload_size > (1024 - length_payload_size):
+                    remaining_payload_size = payload_size - (1024 - length_payload_size - 2)
+                    message = conn.recv(remaining_payload_size)
+                    data += message
+                    large_payload = True
+            except Exception as error:
+                print(name, "disconnected:", error)
+                conn.close()
+                del self._clients[name]
+                break
+
+            #print(data)
+            data = json.loads(data)
+
+            if data['type'] == 'data':
+                self.queue.append(data)
+            elif data['type'] == 'file':
+                #fileSize = data['data'][0]
+                file_path = data['data'][1]
+                file = open(file_path, 'wb')
+                if not large_payload:
+                    file.write(original_message[length_payload_size+payload_size+2:])
+                read = conn.recv(1024)
+                while read:
+                    file.write(read)
+                    read = conn.recv(1024)
+
+                # cleanup and send confirmation
+                file.close()
+                self.queue.append(data)
+                payload = _prepare_payload('control','file', 0)
+                _send_payload(payload, conn)
+                conn.close()
+                del self._clients[name]
+                break
+
+
+    # continuously accept clients
+    def _accept(self):
         try:
             while True:
-                message = self.s.recv(1024)
+                conn, addr = self._s.accept()
+                # get name from client
+                original_message = conn.recv(64)
+                message = original_message.splitlines()
+                name = message[0].decode('utf-8')
+
+                # edge case: payload received at the same time as name
+                if len(message) > 1:
+                    residual = original_message[len(message[0])+2:]
+                else:
+                    residual = None
+                thread = threading.Thread(target=self._listen, args=(name, conn, addr, residual), daemon=True)
+                thread.start()
+                self._clients[name] = [conn, thread]
+        except Exception as error:
+            print("accepting", name,"failed:", error)
+            conn.close()
+
+    def sendData(self, name, data):
+        conn = self._clients[name][0]
+        payload = _prepare_payload('control', 'data', data)
+        _send_payload(payload, conn)
+    
+class Client(object):
+    """
+    Client class
+    =================
+    Attributes:
+        queue       queue for received messages and files
+    
+    Methods:
+        sendData(name, data)
+            Args:
+                name (string): name of receiving pi
+                data (any): any json serializable data
+        
+        sendFile(sour)
+            Args:
+                source_path (string): Path of source file
+                destination_path (string): Path of where the file is going to be placed on server
+                data (any, optional): Any additional data that would help the server figure out
+                    what to do with the file. Defaults to None.
+    """
+    _s = None
+    _name = ''
+    _host = ''
+    _port = None
+    _listen_thread = None
+    _file_counter = 0
+
+    queue = []
+
+    def __init__(self, name, host, port):
+        self._name = name
+        self._host = host
+        self._port =  port
+        self._s = socket.socket()
+        self._s.connect((self._host, self._port))
+        self._s.sendall(bytes(name + "\r\n", encoding="utf-8"))
+        listen_thread = threading.Thread(target=self._listen, daemon=True)
+        listen_thread.start()
+
+    def __del__(self):
+        if self._s:
+            self._s.shutdown(socket.SHUT_RDWR)
+            self._s.close()
+        if self._listen_thread:
+            self._listen_thread.join()
+
+    def _listen(self):
+        try:
+            while True:
+                message = self._s.recv(1024)
                 message = message.splitlines()
-                lenPayloadSize = len(message[0])
-                payloadSize = int(message[0])
+                length_payload_size = len(message[0])
+                payload_size = int(message[0])
                 data = message[1]
-                if payloadSize > (1024 - lenPayloadSize):
-                    message = self.s.recv(payloadSize - (1024 - lenPayloadSize - 2))
+                if payload_size > (1024 - length_payload_size):
+                    message = self._s.recv(payload_size - (1024 - length_payload_size - 2))
                     data += message
                 data = json.loads(data)
                 if data['type'] == 'data':
@@ -116,28 +216,66 @@ class Client(object):
                 elif data['type'] == 'file':
                     # TODO: implement file transfer
                     pass
-        except Exception:
-            pass
+        except Exception as error:
+            print("Error:", error)
+
+    def _send_file(self, file, destination_path, data):
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file_sock = socket.socket()
+        file_sock.connect((self._host, self._port))
+        name_append = self._name + f"_f{self._file_counter}"
+        self._file_counter += 1
+        file_sock.sendall(bytes(name_append + "\r\n", encoding="utf-8"))
+
+        # send file info
+        payload = _prepare_payload(self._name, 'file', [file_size, destination_path, data])
+        _send_payload(payload, file_sock)
+
+        # send file
+        file.seek(0, 0)
+        read = file.read(1024)
+        while read:
+            file_sock.send(read)
+            read = file.read(1024)
+
+        # clean up and receive confirmation
+        file.close()
+        file_sock.shutdown(socket.SHUT_WR)  # signal to opposite end that sending is finished
+        message = file_sock.recv(1024)
+        file_sock.close()
+
+    def disconnect(self):
+        """
+        Disconnect from server
+        """
+        self._s.close()
+        self._s = None
+
 
     def sendData(self, data):
-        payload = {
-            "name": self.name,
-            "type": 'data',
-            "data": data
-        }
-        jsonpayload = json.dumps(payload)
-        self.s.sendall(bytes("%d\r\n" % len(jsonpayload) + jsonpayload , encoding="utf-8"))
-    
-    def sendFile(self, path):
-        # TODO: data: filesize, send payload size, open new socket for file transfer
-        payload = {
-            "name": self.name,
-            "type": 'file',
-            "data": None
-        }
-        jsonpayload = json.dumps(payload)
-        self.s.sendall(bytes(jsonpayload, encoding="utf-8"))
+        """
+        Send data to server
 
-    def __del__(self):
-        self.s.shutdown(0)
-        self.listenThread.join()
+        Args:
+            data (any): any json serializable data
+        """
+        payload = _prepare_payload(self._name, 'data', data)
+        _send_payload(payload, self._s)
+
+    # sourcePath/destinationPath = path/to/file.png
+    def sendFile(self, source_path, destination_path, data=None):
+        """
+        Send file to server
+
+        Args:
+            source_path (string): Path of source file
+            destination_path (string): Path of where the file is going to be placed on server
+            data (any, optional): Any additional data that would help the server figure out
+                what to do with the file. Defaults to None.
+        """
+        # try open
+        file = open(source_path, 'rb')
+
+        send_file_thread = threading.Thread(target=self._send_file,args=(file, destination_path, data), daemon=True)
+        send_file_thread.start()
