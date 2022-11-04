@@ -3,18 +3,26 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import contract.message as message
-from hub.network462 import Client
+import contract.contract as contract
+from hub.network462 import SuburfaceClient
 
-if __name__ == "__main__":
 
-    client = Client("subsurface", "127.0.0.1", 3000)
+async def handle_messages(client: SuburfaceClient):
+    stream = client.stream()
 
-    data: message.MoistureReading = {
-        "name": "moisture",
-        "type": message.MessageType.DATA,
-        "system": message.System.SUBSURFACE,
-        "data": {"moisture": 2.1, "timestamp": 123456789},
-    }
+    async for message in stream:
+        match message.system:
+            case contract.System.HUB:
+                print(f"Received message from HUB: {message.data}")
+
+
+def main():
+    client = SuburfaceClient()
+
+    data = contract.MoistureReadingMessage(0.5)
 
     client.sendData(data)
+
+
+if __name__ == "__main__":
+    main()

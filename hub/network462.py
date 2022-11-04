@@ -2,10 +2,20 @@
 Library for CSCE 462 Final Project
 """
 # TODO: clean up imports
+import asyncio
+import datetime
 import socket
 import json
+import sys
 import threading
 import os
+
+from typing import AsyncGenerator, Generator
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+import contract.contract as contract
+
 
 #from time import sleep
 
@@ -20,6 +30,9 @@ def _prepare_payload(name, message_type, data):
         "data": data
     }
     return payload
+
+
+
 
 class ControlHub(object):
     """
@@ -109,9 +122,12 @@ class ControlHub(object):
                 #fileSize = data['data'][0]
                 file_path = data['data'][1]
                 file = open(file_path, 'wb')
+
                 if not large_payload:
                     file.write(original_message[length_payload_size+payload_size+2:])
+
                 read = conn.recv(1024)
+
                 while read:
                     file.write(read)
                     read = conn.recv(1024)
@@ -141,9 +157,11 @@ class ControlHub(object):
                     residual = original_message[len(message[0])+2:]
                 else:
                     residual = None
+
                 thread = threading.Thread(target=self._listen, args=(name, conn, addr, residual), daemon=True)
                 thread.start()
                 self._clients[name] = [conn, thread]
+
         except Exception as error:
             print("accepting", name,"failed:", error)
             conn.close()
@@ -279,3 +297,63 @@ class Client(object):
 
         send_file_thread = threading.Thread(target=self._send_file,args=(file, destination_path, data), daemon=True)
         send_file_thread.start()
+
+
+
+class StreamingClient(Client):
+    _message_size = 1024
+    _system = "client"
+
+    _wsock = None
+    _rsock = None
+
+    def __init__(self, name: str, host: str, port: int):
+        self._rsock, self._wsock = socket.socketpair()
+        self._rsock.bind((host, port))
+        self._wsock.bind((host, port))
+
+
+    async def stream(self) -> AsyncGenerator[contract.Message, contract.Message]:
+        reader, writer = await asyncio.open_connection(sock=self._rsock)
+
+
+        while True:
+            data = (await reader.read(100)).decode()
+
+            try:
+                message = json.loads(data)
+                yield contract.Message(message['type'], message['type'], message['data'])
+
+            except Exception as e:
+                print(e)
+
+    def sendData(self, data):
+        if(self._wsock):
+            self._wsock.sendall(bytes(json.dumps(data), encoding="utf-8"))
+
+        
+
+
+# on the sending side we want a clear interface to interact with
+class SuburfaceClient(StreamingClient):
+    def __init__(self, name: str = "subsurface", host: str = "127.0.0.1", port: int = 3000):
+        super().__init__(name, host, port)
+
+    def logMoistureData(self, data: contract.MoistureReadingMessage):
+        """
+            Send moisture data to hub
+            if the timestamp is not specified it will be added for you
+        """
+        if data.timestamp is None:
+            data.timestamp = datetime.datetime.now()
+
+        
+        self.sendData(data)
+
+    # def logTemperatureData(self, data: contract.TemperatureData):
+        # submodule has added this method indicating that they need to send this type of dat
+        # is is up to the network module to decide how to send it
+        # we want the client interface to widen only, which means we allow them
+        # more freedom in how they give us the information and we accomodate their needs
+        # we try not to impose new restrictions on them
+        # raise NotImplementedError()
