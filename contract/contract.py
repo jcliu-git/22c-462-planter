@@ -84,22 +84,33 @@ class MoistureReadingMessage(Message[IMoistureData]):
 # monitoring definitions
 
 
-class IMotionDetected(TypedDict):
-    human: bool
+class PhotoCapture(TypedDict):
+    filename: float
+    phototype: float
     timestamp: Optional[datetime.datetime]
 
 
-class MotionDetected(Message[IMotionDetected]):
-    human: bool
+class PhotoCaptureMessage(Message[PhotoCapture]):
+    filename: float
+    phototype: float
     timestamp: Optional[datetime.datetime]
 
-    def __init__(self, human: bool, timestamp: Optional[datetime.datetime] = None):
+    def __init__(
+        self,
+        filename: float,
+        phototype: float,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
         super().__init__(
-            MessageType.MOTION_DETECTED,
-            System.MONITORING,
-            {"human": human, "timestamp": timestamp},
+            MessageType.DATA,
+            System.CAMERA,
+            {"filename": filename, "phototype": phototype, "timestamp": timestamp},
         )
 
     @staticmethod
-    def fromJson(message: IMessage[IMotionDetected]):
-        return MotionDetected(message["data"]["human"], message["data"]["timestamp"])
+    def fromJson(message: IMessage[PhotoCapture]):
+        return PhotoCaptureMessage(
+            message["data"]["filename"],
+            message["data"]["phototype"],
+            message["data"]["timestamp"],
+        )
