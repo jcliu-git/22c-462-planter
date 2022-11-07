@@ -10,28 +10,26 @@ import sys
 import threading
 import os
 
-from typing import AsyncGenerator, Generator
+from typing import Any, AsyncGenerator, Generator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import contract.contract as contract
 
 
-#from time import sleep
+# from time import sleep
+
 
 def _send_payload(payload, payload_socket):
     jsonpayload = json.dumps(payload)
-    payload_socket.sendall(bytes(f"{len(jsonpayload)}\r\n" + jsonpayload, encoding="utf-8"))
+    payload_socket.sendall(
+        bytes(f"{len(jsonpayload)}\r\n" + jsonpayload, encoding="utf-8")
+    )
+
 
 def _prepare_payload(name, message_type, data):
-    payload = {
-        "name": name,
-        "type": message_type,
-        "data": data
-    }
+    payload = {"name": name, "type": message_type, "data": data}
     return payload
-
-
 
 
 class ControlHub(object):
@@ -40,13 +38,14 @@ class ControlHub(object):
     =================
     Attributes:
         queue       queue for received messages and files
-    
+
     Methods:
         sendData(name, data)
             Args:
                 name (string): name of receiving pi
                 data (any): any json serializable data
     """
+
     _s = None
     _accept_thread = None
     _clients = {}
@@ -60,7 +59,7 @@ class ControlHub(object):
             port (_type_): _description_
         """
         self._s = socket.socket()
-        self._s.bind((host,port))
+        self._s.bind((host, port))
         self._s.listen()
 
         # daemon threads are not an elegant solution to stopping threads but it will do
@@ -70,18 +69,18 @@ class ControlHub(object):
     # TODO: find out why this isn't being called
     # is called on raspi but not on windows
     def __del__(self):
-        #print("destructing")
+        # print("destructing")
         self._s.shutdown(socket.SHUT_RDWR)
         self._s.close()
         for client in self._clients.items():
-            #print("try", client)
+            # print("try", client)
             client[0].shutdown(socket.SHUT_RDWR)
             client[0].close()
             client[1].join()
-            #print("successful", client)
-        #print("try destruct accept")
+            # print("successful", client)
+        # print("try destruct accept")
         self._accept_thread.join()
-        #print("successful destruct accept")
+        # print("successful destruct accept")
 
     # listens for messages on each socket
     def _listen(self, name, conn, addr, residual):
@@ -98,12 +97,14 @@ class ControlHub(object):
                 length_payload_size = len(message[0])
                 payload_size = int(message[0])
                 data = message[1][0:payload_size]
-                #print("payload size: ", payloadSize)
+                # print("payload size: ", payloadSize)
 
                 large_payload = False
                 # if payload is larger than initial receive
                 if payload_size > (1024 - length_payload_size):
-                    remaining_payload_size = payload_size - (1024 - length_payload_size - 2)
+                    remaining_payload_size = payload_size - (
+                        1024 - length_payload_size - 2
+                    )
                     message = conn.recv(remaining_payload_size)
                     data += message
                     large_payload = True
@@ -113,18 +114,20 @@ class ControlHub(object):
                 del self._clients[name]
                 break
 
-            #print(data)
+            # print(data)
             data = json.loads(data)
 
-            if data['type'] == 'data':
+            if data["type"] == "data":
                 self.queue.append(data)
-            elif data['type'] == 'file':
-                #fileSize = data['data'][0]
-                file_path = data['data'][1]
-                file = open(file_path, 'wb')
+            elif data["type"] == "file":
+                # fileSize = data['data'][0]
+                file_path = data["data"][1]
+                file = open(file_path, "wb")
 
                 if not large_payload:
-                    file.write(original_message[length_payload_size+payload_size+2:])
+                    file.write(
+                        original_message[length_payload_size + payload_size + 2 :]
+                    )
 
                 read = conn.recv(1024)
 
@@ -135,12 +138,11 @@ class ControlHub(object):
                 # cleanup and send confirmation
                 file.close()
                 self.queue.append(data)
-                payload = _prepare_payload('control','file', 0)
+                payload = _prepare_payload("control", "file", 0)
                 _send_payload(payload, conn)
                 conn.close()
                 del self._clients[name]
                 break
-
 
     # continuously accept clients
     def _accept(self):
@@ -150,40 +152,43 @@ class ControlHub(object):
                 # get name from client
                 original_message = conn.recv(64)
                 message = original_message.splitlines()
-                name = message[0].decode('utf-8')
+                name = message[0].decode("utf-8")
 
                 # edge case: payload received at the same time as name
                 if len(message) > 1:
-                    residual = original_message[len(message[0])+2:]
+                    residual = original_message[len(message[0]) + 2 :]
                 else:
                     residual = None
 
-                thread = threading.Thread(target=self._listen, args=(name, conn, addr, residual), daemon=True)
+                thread = threading.Thread(
+                    target=self._listen, args=(name, conn, addr, residual), daemon=True
+                )
                 thread.start()
                 self._clients[name] = [conn, thread]
 
         except Exception as error:
-            print("accepting", name,"failed:", error)
+            print("accepting", name, "failed:", error)
             conn.close()
 
     def sendData(self, name, data):
         conn = self._clients[name][0]
-        payload = _prepare_payload('control', 'data', data)
+        payload = _prepare_payload("control", "data", data)
         _send_payload(payload, conn)
-    
+
+
 class Client(object):
     """
     Client class
     =================
     Attributes:
         queue       queue for received messages and files
-    
+
     Methods:
         sendData(name, data)
             Args:
                 name (string): name of receiving pi
                 data (any): any json serializable data
-        
+
         sendFile(sour)
             Args:
                 source_path (string): Path of source file
@@ -191,9 +196,10 @@ class Client(object):
                 data (any, optional): Any additional data that would help the server figure out
                     what to do with the file. Defaults to None.
     """
+
     _s = None
-    _name = ''
-    _host = ''
+    _name = ""
+    _host = ""
     _port = None
     _listen_thread = None
     _file_counter = 0
@@ -203,7 +209,7 @@ class Client(object):
     def __init__(self, name, host, port):
         self._name = name
         self._host = host
-        self._port =  port
+        self._port = port
         self._s = socket.socket()
         self._s.connect((self._host, self._port))
         self._s.sendall(bytes(name + "\r\n", encoding="utf-8"))
@@ -226,12 +232,14 @@ class Client(object):
                 payload_size = int(message[0])
                 data = message[1]
                 if payload_size > (1024 - length_payload_size):
-                    message = self._s.recv(payload_size - (1024 - length_payload_size - 2))
+                    message = self._s.recv(
+                        payload_size - (1024 - length_payload_size - 2)
+                    )
                     data += message
                 data = json.loads(data)
-                if data['type'] == 'data':
+                if data["type"] == "data":
                     self.queue.append(data)
-                elif data['type'] == 'file':
+                elif data["type"] == "file":
                     # TODO: implement file transfer
                     pass
         except Exception as error:
@@ -247,7 +255,9 @@ class Client(object):
         file_sock.sendall(bytes(name_append + "\r\n", encoding="utf-8"))
 
         # send file info
-        payload = _prepare_payload(self._name, 'file', [file_size, destination_path, data])
+        payload = _prepare_payload(
+            self._name, "file", [file_size, destination_path, data]
+        )
         _send_payload(payload, file_sock)
 
         # send file
@@ -259,7 +269,9 @@ class Client(object):
 
         # clean up and receive confirmation
         file.close()
-        file_sock.shutdown(socket.SHUT_WR)  # signal to opposite end that sending is finished
+        file_sock.shutdown(
+            socket.SHUT_WR
+        )  # signal to opposite end that sending is finished
         message = file_sock.recv(1024)
         file_sock.close()
 
@@ -270,7 +282,6 @@ class Client(object):
         self._s.close()
         self._s = None
 
-
     def sendData(self, data):
         """
         Send data to server
@@ -278,7 +289,7 @@ class Client(object):
         Args:
             data (any): any json serializable data
         """
-        payload = _prepare_payload(self._name, 'data', data)
+        payload = _prepare_payload(self._name, "data", data)
         _send_payload(payload, self._s)
 
     # sourcePath/destinationPath = path/to/file.png
@@ -293,11 +304,12 @@ class Client(object):
                 what to do with the file. Defaults to None.
         """
         # try open
-        file = open(source_path, 'rb')
+        file = open(source_path, "rb")
 
-        send_file_thread = threading.Thread(target=self._send_file,args=(file, destination_path, data), daemon=True)
+        send_file_thread = threading.Thread(
+            target=self._send_file, args=(file, destination_path, data), daemon=True
+        )
         send_file_thread.start()
-
 
 
 class StreamingClient(Client):
@@ -307,53 +319,71 @@ class StreamingClient(Client):
     _wsock = None
     _rsock = None
 
-    def __init__(self, name: str, host: str, port: int):
+    _writer: asyncio.StreamWriter
+
+    def __init__(self, host: str = "127.0.0.1", port: int = 3000):
         self._rsock, self._wsock = socket.socketpair()
         self._rsock.bind((host, port))
         self._wsock.bind((host, port))
 
-
-    async def stream(self) -> AsyncGenerator[contract.Message, contract.Message]:
+    async def stream(
+        self,
+    ) -> AsyncGenerator[contract.Message[Any], None]:
         reader, writer = await asyncio.open_connection(sock=self._rsock)
 
+        self._writer = writer
 
         while True:
-            data = (await reader.read(100)).decode()
+            data = await reader.read()
 
             try:
                 message = json.loads(data)
-                yield contract.Message(message['type'], message['type'], message['data'])
+
+                yield contract.Message(
+                    message["system"], message["type"], message["data"]
+                )
 
             except Exception as e:
                 print(e)
 
     def sendData(self, data):
-        if(self._wsock):
-            self._wsock.sendall(bytes(json.dumps(data), encoding="utf-8"))
+        if self._writer is not None:
+            if isinstance(data, bytes):
+                self._writer.write(data)
+            else:
+                self._writer.write(bytes(json.dumps(data), encoding="utf-8"))
 
-        
+        # if self._wsock:
+        #     self._wsock.sendall(bytes(json.dumps(data), encoding="utf-8"))
 
 
 # on the sending side we want a clear interface to interact with
 class SuburfaceClient(StreamingClient):
-    def __init__(self, name: str = "subsurface", host: str = "127.0.0.1", port: int = 3000):
-        super().__init__(name, host, port)
-
     def logMoistureData(self, data: contract.MoistureReadingMessage):
         """
-            Send moisture data to hub
-            if the timestamp is not specified it will be added for you
+        Send moisture data to hub
+        if the timestamp is not specified it will be added for you
         """
         if data.timestamp is None:
             data.timestamp = datetime.datetime.now()
 
-        
         self.sendData(data)
 
     # def logTemperatureData(self, data: contract.TemperatureData):
-        # submodule has added this method indicating that they need to send this type of dat
-        # is is up to the network module to decide how to send it
-        # we want the client interface to widen only, which means we allow them
-        # more freedom in how they give us the information and we accomodate their needs
-        # we try not to impose new restrictions on them
-        # raise NotImplementedError()
+    # submodule has added this method indicating that they need to send this type of dat
+    # is is up to the network module to decide how to send it
+    # we want the client interface to widen only, which means we allow them
+    # more freedom in how they give us the information and we accomodate their needs
+    # we try not to impose new restrictions on them
+    # raise NotImplementedError()
+
+
+class MonitoringClient(StreamingClient):
+    def motionDetected(self, data: contract.MotionDetected):
+        """
+        Send motion detected data to hub
+        """
+        if data.timestamp is None:
+            data.timestamp = datetime.datetime.now()
+
+        self.sendData(data)
