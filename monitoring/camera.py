@@ -18,7 +18,7 @@ camera = PiCamera()
 servo1 = Servo(17) # 180 servo
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(27, GPIO.OUT)
-servo2 = GPIO.PWM(27, 50) # contnous servo
+servo2 = GPIO.PWM(27, 50) # continuous servo
 
 
 def camera_capture(time, phototype, filename):
@@ -37,7 +37,7 @@ def camera_capture(time, phototype, filename):
     client.sendFile(filename+ ".jpg", filename+ ".jpg")
 
 def motion_track():
-    # Defined angles of rotation for servo2(contnous servo)
+    # Defined angles of rotation for servo2(continuous servo)
     center = 7.5
     right_45 = 5
     right_90 = 2.7
