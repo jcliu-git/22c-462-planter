@@ -3,6 +3,8 @@ from datetime import date
 from datetime import datetime
 from picamera import PiCamera
 from gpiozero import MotionSensor
+from gpiozero import Servo
+import RPi.GPIO as GPIO
 from network462 import Client
 from time import sleep
 import json
@@ -12,6 +14,11 @@ client = Client("test", "127.0.0.1", 32132)
 # devices
 pir = MotionSensor(4)
 camera = PiCamera()
+# servos setup
+servo1 = Servo(17) # 180 servo
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(27, GPIO.OUT)
+servo2 = GPIO.PWM(27, 50) # continuous servo
 
 
 def camera_capture(time, phototype, filename):
@@ -28,6 +35,15 @@ def camera_capture(time, phototype, filename):
     monitor_event = json.dumps(data)
     client.sendData(monitor_event)
     client.sendFile(filename+ ".jpg", filename+ ".jpg")
+
+def motion_track():
+    # Defined angles of rotation for servo2(continuous servo)
+    center = 7.5
+    right_45 = 5
+    right_90 = 2.7
+    left_45 = 10
+    right_90 = 12.5
+    
 
 while True:
     today = date.today()
