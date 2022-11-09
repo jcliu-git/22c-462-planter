@@ -1,181 +1,89 @@
 """
 Library for CSCE 462 Final Project
 """
-# TODO: clean up imports
 import asyncio
-import datetime
-import socket
 import json
-import sys
-import threading
 import os
-
+import sys
+from threading import Thread
 from typing import Any, AsyncGenerator, Generator
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
+sys.path.append("../")
 import contract.contract as contract
 
-
-# from time import sleep
-
-
-def _send_payload(payload, payload_socket):
-    jsonpayload = json.dumps(payload)
-    payload_socket.sendall(
-        bytes(f"{len(jsonpayload)}\r\n" + jsonpayload, encoding="utf-8")
-    )
-
-
-def _prepare_payload(name, message_type, data):
-    payload = {"name": name, "type": message_type, "data": data}
+# TODO: implement contracts
+def _prepare_payload(system, message_type, data):
+    payload = {"system": str(system), "type": str(message_type), "data": data}
     return payload
-
 
 class ControlHub(object):
     """
     Control hub class
     =================
     Attributes:
-        queue       queue for received messages and files
+        queue       asyncio queue for received messages and files
 
     Methods:
-        sendData(name, data)
+        sendData(system, data)
             Args:
-                name (string): name of receiving pi
+                system (string/System): name of receiving pi
                 data (any): any json serializable data
     """
-
-    _s = None
-    _accept_thread = None
-    _clients = {}
-    queue = []
-
     def __init__(self, host, port):
-        """_summary_
+        self._host = host
+        self._port = port
+        self._server = None
+        self._clients = {}
+        self.queue = asyncio.Queue()
 
-        Args:
-            host (_type_): _description_
-            port (_type_): _description_
-        """
-        self._s = socket.socket()
-        self._s.bind((host, port))
-        self._s.listen()
+    async def startServer(self):
+        self._server = await asyncio.start_server(self._listen, self._host, self._port)
+        asyncio.create_task(self._server.serve_forever())
 
-        # daemon threads are not an elegant solution to stopping threads but it will do
-        self._accept_thread = threading.Thread(target=self._accept, daemon=True)
-        self._accept_thread.start()
-
-    # TODO: find out why this isn't being called
-    # is called on raspi but not on windows
-    def __del__(self):
-        # print("destructing")
-        self._s.shutdown(socket.SHUT_RDWR)
-        self._s.close()
-        for client in self._clients.items():
-            # print("try", client)
-            client[0].shutdown(socket.SHUT_RDWR)
-            client[0].close()
-            client[1].join()
-            # print("successful", client)
-        # print("try destruct accept")
-        self._accept_thread.join()
-        # print("successful destruct accept")
-
-    # listens for messages on each socket
-    def _listen(self, name, conn, addr, residual):
+    async def _listen(self, reader, writer):
+        data = await reader.readline()
+        system_name = data.decode("utf-8")[:-1]
+        print("client:", system_name)
+        self._clients[system_name] = [reader, writer]
         while True:
+            #print("waiting for data")
+            data = await reader.readline()
+            if not data:
+                print("Client", system_name, "has disconnected.")
+                break
+            #print(data)
             try:
-                original_message = conn.recv(1024)
+                payload = json.loads(data)
+                if payload["type"] == "data":
+                    await self.queue.put(payload)
+                if payload["type"] == "file":
+                    # TODO: create directory if doesn't exist
 
-                # edge case handling
-                if residual:
-                    original_message = residual + original_message
-                    residual = None
+                    # write to file
+                    filepath = payload["data"]["path"] + payload["data"]["filename"]
+                    with open(filepath, "wb+") as file:
+                        data = await reader.readexactly(payload["data"]["filesize"])
+                        file.write(data)
 
-                message = original_message.splitlines()
-                length_payload_size = len(message[0])
-                payload_size = int(message[0])
-                data = message[1][0:payload_size]
-                # print("payload size: ", payloadSize)
-
-                large_payload = False
-                # if payload is larger than initial receive
-                if payload_size > (1024 - length_payload_size):
-                    remaining_payload_size = payload_size - (
-                        1024 - length_payload_size - 2
-                    )
-                    message = conn.recv(remaining_payload_size)
-                    data += message
-                    large_payload = True
-            except Exception as error:
-                print(name, "disconnected:", error)
-                conn.close()
-                del self._clients[name]
+                        # append queue and clean up
+                        await self.queue.put(payload)
+                        writer.write(b"\n")  # acknowledgement
+                        await writer.drain()
+                        writer.close()
+                        print("deleting")
+                        del self._clients[system_name]
+                        break
+            except Exception as err:
+                print(err)
                 break
 
-            # print(data)
-            data = json.loads(data)
-
-            if data["type"] == "data":
-                self.queue.append(data)
-            elif data["type"] == "file":
-                # fileSize = data['data'][0]
-                file_path = data["data"][1]
-                file = open(file_path, "wb")
-
-                if not large_payload:
-                    file.write(
-                        original_message[length_payload_size + payload_size + 2 :]
-                    )
-
-                read = conn.recv(1024)
-
-                while read:
-                    file.write(read)
-                    read = conn.recv(1024)
-
-                # cleanup and send confirmation
-                file.close()
-                self.queue.append(data)
-                payload = _prepare_payload("control", "file", 0)
-                _send_payload(payload, conn)
-                conn.close()
-                del self._clients[name]
-                break
-
-    # continuously accept clients
-    def _accept(self):
-        try:
-            while True:
-                conn, addr = self._s.accept()
-                # get name from client
-                original_message = conn.recv(64)
-                message = original_message.splitlines()
-                name = message[0].decode("utf-8")
-
-                # edge case: payload received at the same time as name
-                if len(message) > 1:
-                    residual = original_message[len(message[0]) + 2 :]
-                else:
-                    residual = None
-
-                thread = threading.Thread(
-                    target=self._listen, args=(name, conn, addr, residual), daemon=True
-                )
-                thread.start()
-                self._clients[name] = [conn, thread]
-
-        except Exception as error:
-            print("accepting", name, "failed:", error)
-            conn.close()
-
-    def sendData(self, name, data):
-        conn = self._clients[name][0]
-        payload = _prepare_payload("control", "data", data)
-        _send_payload(payload, conn)
-
-
+    async def sendData(self, system, data):
+        writer = self._clients[str(system)][1]
+        payload = _prepare_payload(system, contract.MessageType.DATA, data)
+        jsonpayload = json.dumps(payload) + "\n"
+        encoded = bytes(jsonpayload, encoding="utf-8")
+        writer.write(encoded)
+        await writer.drain()
+        
 class Client(object):
     """
     Client class
@@ -196,104 +104,105 @@ class Client(object):
                 data (any, optional): Any additional data that would help the server figure out
                     what to do with the file. Defaults to None.
     """
-
-    _s = None
-    _name = ""
-    _host = ""
-    _port = None
-    _listen_thread = None
-    _file_counter = 0
-
-    queue = []
-
-    def __init__(self, name, host, port):
-        self._name = name
+    def __init__(self, system, host, port):
+        self._system = system
         self._host = host
         self._port = port
-        self._s = socket.socket()
-        self._s.connect((self._host, self._port))
-        self._s.sendall(bytes(name + "\r\n", encoding="utf-8"))
-        listen_thread = threading.Thread(target=self._listen, daemon=True)
-        listen_thread.start()
+        self._reader = None
+        self._writer = None
+        self._file_counter = 0
+        self.queue = asyncio.Queue()
 
-    def __del__(self):
-        if self._s:
-            self._s.shutdown(socket.SHUT_RDWR)
-            self._s.close()
-        if self._listen_thread:
-            self._listen_thread.join()
+    async def connect(self):
+        """
+        Connect to the server
+        """
+        try:
+            #print("connecting")
+            self._reader, self._writer = await asyncio.open_connection(self._host, self._port)
+            #print("connection established")
 
-    def _listen(self):
+            # send system name to server
+            encoded = str(self._system) + "\n"
+            self._writer.write(encoded.encode("utf-8"))
+            await self._writer.drain()
+
+            asyncio.create_task(self._receive_messages())
+        except Exception as err:
+            print("Disconnected:", err)
+
+    async def _receive_messages(self):
         try:
             while True:
-                message = self._s.recv(1024)
-                message = message.splitlines()
-                length_payload_size = len(message[0])
-                payload_size = int(message[0])
-                data = message[1]
-                if payload_size > (1024 - length_payload_size):
-                    message = self._s.recv(
-                        payload_size - (1024 - length_payload_size - 2)
-                    )
-                    data += message
-                data = json.loads(data)
-                if data["type"] == "data":
-                    self.queue.append(data)
-                elif data["type"] == "file":
-                    # TODO: implement file transfer
-                    pass
-        except Exception as error:
-            print("Error:", error)
+                data = await self._reader.readline()
+                payload = json.loads(data)
+                if payload["type"] == "data":
+                    await self.queue.put(payload)
+        except Exception as err:
+            print(err)
 
-    def _send_file(self, file, destination_path, data):
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file_sock = socket.socket()
-        file_sock.connect((self._host, self._port))
-        name_append = self._name + f"_f{self._file_counter}"
-        self._file_counter += 1
-        file_sock.sendall(bytes(name_append + "\r\n", encoding="utf-8"))
+    async def sendData(self, data):
+        if self._writer is not None:
+            payload = _prepare_payload(
+                self._system,
+                contract.MessageType.DATA,
+                data
+                )
+            jsonpayload = json.dumps(payload) + "\n"
+            encoded = bytes(jsonpayload, encoding="utf-8")
+            self._writer.write(encoded)
+            await self._writer.drain()
+        else:
+            print("Sending data failed")
 
-        # send file info
-        payload = _prepare_payload(
-            self._name, "file", [file_size, destination_path, data]
-        )
-        _send_payload(payload, file_sock)
+    async def _send_file(self, source_path, destination_path, data):
+        # try open
+        with open(source_path, "rb") as file:
+            # file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
 
-        # send file
-        file.seek(0, 0)
-        read = file.read(1024)
-        while read:
-            file_sock.send(read)
-            read = file.read(1024)
+            # connect to server
+            reader, writer = await asyncio.open_connection(self._host, self._port)
+            encoded = str(self._system) + f"_f{self._file_counter}\n"
+            self._file_counter += 1
+            if self._file_counter > 512:
+                self._file_counter = 0
+            writer.write(encoded.encode("utf-8"))
+            await writer.drain()
 
-        # clean up and receive confirmation
-        file.close()
-        file_sock.shutdown(
-            socket.SHUT_WR
-        )  # signal to opposite end that sending is finished
-        message = file_sock.recv(1024)
-        file_sock.close()
+            # send file info
+            filename = destination_path.split('/')[-1]
+            path = destination_path[:len(destination_path)-len(filename)]
+            # TODO: implement contracts
+            #payload = contract.FileMessage(self._system, filename, path, file_size)
+            payload = {
+                "system": str(self._system),
+                "type": "file",
+                "data": {
+                    "filename": filename,
+                    "path": path,
+                    "filesize": file_size,
+                    "data": data
+                }
+            }
+            jsonpayload = json.dumps(payload) + "\n"
+            writer.write(bytes(jsonpayload, encoding="utf-8"))
+            await writer.drain()
 
-    def disconnect(self):
-        """
-        Disconnect from server
-        """
-        self._s.close()
-        self._s = None
+            # send file
+            file.seek(0,0)
+            await asyncio.sleep(1)
+            read = file.read()
+            writer.write(read)
 
-    def sendData(self, data):
-        """
-        Send data to server
+            # cleanup
+            await writer.drain()
+            file.close()
+            acknowledgement = await reader.readline()
+            writer.close()
 
-        Args:
-            data (any): any json serializable data
-        """
-        payload = _prepare_payload(self._name, "data", data)
-        _send_payload(payload, self._s)
-
-    # sourcePath/destinationPath = path/to/file.png
-    def sendFile(self, source_path, destination_path, data=None):
+    async def sendFile(self, source_path, destination_path, data=None):
         """
         Send file to server
 
@@ -303,87 +212,6 @@ class Client(object):
             data (any, optional): Any additional data that would help the server figure out
                 what to do with the file. Defaults to None.
         """
-        # try open
-        file = open(source_path, "rb")
-
-        send_file_thread = threading.Thread(
-            target=self._send_file, args=(file, destination_path, data), daemon=True
-        )
-        send_file_thread.start()
-
-
-class StreamingClient(Client):
-    _message_size = 1024
-    _system = "client"
-
-    _wsock = None
-    _rsock = None
-
-    _writer: asyncio.StreamWriter
-
-    def __init__(self, host: str = "127.0.0.1", port: int = 3000):
-        self._rsock, self._wsock = socket.socketpair()
-        self._rsock.bind((host, port))
-        self._wsock.bind((host, port))
-
-    async def stream(
-        self,
-    ) -> AsyncGenerator[contract.Message[Any], None]:
-        reader, writer = await asyncio.open_connection(sock=self._rsock)
-
-        self._writer = writer
-
-        while True:
-            data = await reader.read()
-
-            try:
-                message = json.loads(data)
-
-                yield contract.Message(
-                    message["system"], message["type"], message["data"]
-                )
-
-            except Exception as e:
-                print(e)
-
-    def sendData(self, data):
-        if self._writer is not None:
-            if isinstance(data, bytes):
-                self._writer.write(data)
-            else:
-                self._writer.write(bytes(json.dumps(data), encoding="utf-8"))
-
-        # if self._wsock:
-        #     self._wsock.sendall(bytes(json.dumps(data), encoding="utf-8"))
-
-
-# on the sending side we want a clear interface to interact with
-class SuburfaceClient(StreamingClient):
-    def logMoistureData(self, data: contract.MoistureReadingMessage):
-        """
-        Send moisture data to hub
-        if the timestamp is not specified it will be added for you
-        """
-        if data.timestamp is None:
-            data.timestamp = datetime.datetime.now()
-
-        self.sendData(data)
-
-    # def logTemperatureData(self, data: contract.TemperatureData):
-    # submodule has added this method indicating that they need to send this type of dat
-    # is is up to the network module to decide how to send it
-    # we want the client interface to widen only, which means we allow them
-    # more freedom in how they give us the information and we accomodate their needs
-    # we try not to impose new restrictions on them
-    # raise NotImplementedError()
-
-
-class MonitoringClient(StreamingClient):
-    def motionDetected(self, data: contract.MotionDetected):
-        """
-        Send motion detected data to hub
-        """
-        if data.timestamp is None:
-            data.timestamp = datetime.datetime.now()
-
-        self.sendData(data)
+        # sending files is slow, better to do it on a different thread in a separate event loop
+        thread = Thread(target=asyncio.run, args=(self._send_file(source_path, destination_path, data),), daemon = True)
+        thread.start()
