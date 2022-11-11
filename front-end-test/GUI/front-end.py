@@ -3,8 +3,7 @@ import os
 import psycopg2
 
 app = Flask(__name__)                                                                                                                                        
- 
-
+print('Hello')
 #Connect to database
 DATABASE_URL = os.getenv('DATABASE_URL')
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
