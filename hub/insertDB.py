@@ -2,8 +2,6 @@ import os
 import psycopg2
 from time import sleep
 from datetime import datetime
-import threading
-import webbrowser
 import sys
 from time import sleep
 import asyncio
@@ -21,13 +19,17 @@ async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
     await controlHub.startServer()
     while True:
-        data = await controlHub.queue.get()
-        print(data)
+        message = await controlHub.queue.get()
+        match message.system:
+            case contract.System.SUBSURFACE:
+                match message.type:
+                    case contract.MessageType.MOISTURE_READING:
+                        data = contract.MoistureReadingMessage.fromJson(message)
         await controlHub.sendData(data["system"], data["data"])
 
 asyncio.run(main())
 
-def insertDB():
+"""def insertDB():
     while True:
         if control.queue:
             payload = control.queue.pop(0)
@@ -49,13 +51,8 @@ def insertDB():
                 curr.execute(query, (datetime.now(), data))
                 print('done')
         sleep(1)
+"""
 
-#Spawn a new thread to add data in database
-thread = threading.Thread(target=insertDB, daemon=True)
-thread.start()
-
-#Main thread: check for human and display 
-webbrowser.open('file://' + os.path.realpath('index.html'))
 
 
 
