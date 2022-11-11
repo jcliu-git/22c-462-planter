@@ -138,20 +138,20 @@ class MoistureReadingMessage(Message[IMoistureData]):
 
 
 class PhotoCapture(TypedDict):
-    filename: float
-    phototype: float
+    filename: str
+    phototype: str
     timestamp: Optional[datetime.datetime]
 
 
 class PhotoCaptureMessage(Message[PhotoCapture]):
-    filename: float
-    phototype: float
+    filename: str
+    phototype: str
     timestamp: Optional[datetime.datetime]
 
     def __init__(
         self,
-        filename: float,
-        phototype: float,
+        filename: str,
+        phototype: str,
         timestamp: Optional[datetime.datetime] = None,
     ):
         super().__init__(
