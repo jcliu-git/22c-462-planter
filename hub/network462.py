@@ -5,15 +5,14 @@ import asyncio
 import json
 import os
 import sys
+import logging
+from pathlib import Path
 from threading import Thread
 from typing import Any, AsyncGenerator, Generator
 sys.path.append("../")
 import contract.contract as contract
 
-# TODO: implement contracts
-def _prepare_payload(system, message_type, data):
-    payload = {"system": str(system), "type": str(message_type), "data": data}
-    return payload
+logging.basicConfig(filename="network.log", encoding="utf-8")
 
 class ControlHub(object):
     """
@@ -48,7 +47,9 @@ class ControlHub(object):
             #print("waiting for data")
             data = await reader.readline()
             if not data:
-                print("Client", system_name, "has disconnected.")
+                debugmsg = "Client " + system_name + " has disconnected."
+                print(debugmsg)
+                logging.warning(debugmsg)
                 break
             #print(data)
             try:
@@ -56,10 +57,17 @@ class ControlHub(object):
                 if payload["type"] == "data":
                     await self.queue.put(payload)
                 if payload["type"] == "file":
-                    # TODO: create directory if doesn't exist
+                    filepath = payload["data"]["path"] + payload["data"]["filename"]
+                    logging.info("File: %s", filepath)
+                    
+                    # fix filepath if contains windows style path
+                    if '\\' in filepath:
+                        filepath.replace("/","\\")
+
+                    # create directory if doesn't exist
+                    Path(payload["data"]["path"]).mkdir(parents=True, exist_ok=True)
 
                     # write to file
-                    filepath = payload["data"]["path"] + payload["data"]["filename"]
                     with open(filepath, "wb+") as file:
                         data = await reader.readexactly(payload["data"]["filesize"])
                         file.write(data)
@@ -69,17 +77,16 @@ class ControlHub(object):
                         writer.write(b"\n")  # acknowledgement
                         await writer.drain()
                         writer.close()
-                        print("deleting")
+                        print("File transfer done. Removing", system_name)
                         del self._clients[system_name]
                         break
             except Exception as err:
-                print(err)
-                break
+                logging.error(err)
 
     async def sendData(self, system, data):
         writer = self._clients[str(system)][1]
-        payload = _prepare_payload(system, contract.MessageType.DATA, data)
-        jsonpayload = json.dumps(payload) + "\n"
+        payload = contract.DataMessage(system, data)
+        jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
         encoded = bytes(jsonpayload, encoding="utf-8")
         writer.write(encoded)
         await writer.drain()
@@ -97,7 +104,7 @@ class Client(object):
                 name (string): name of receiving pi
                 data (any): any json serializable data
 
-        sendFile(sour)
+        sendFile(source_path, destination_path, data)
             Args:
                 source_path (string): Path of source file
                 destination_path (string): Path of where the file is going to be placed on server
@@ -132,23 +139,22 @@ class Client(object):
             print("Disconnected:", err)
 
     async def _receive_messages(self):
-        try:
             while True:
                 data = await self._reader.readline()
-                payload = json.loads(data)
-                if payload["type"] == "data":
-                    await self.queue.put(payload)
-        except Exception as err:
-            print(err)
+                if not data:
+                    logging.error("Server has disconnected.")
+                    break
+                try:
+                    payload = json.loads(data)
+                    if payload["type"] == "data":
+                        await self.queue.put(payload)
+                except Exception as err:
+                    logging.error(err)
 
     async def sendData(self, data):
         if self._writer is not None:
-            payload = _prepare_payload(
-                self._system,
-                contract.MessageType.DATA,
-                data
-                )
-            jsonpayload = json.dumps(payload) + "\n"
+            payload = contract.DataMessage(self._system, data)
+            jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             encoded = bytes(jsonpayload, encoding="utf-8")
             self._writer.write(encoded)
             await self._writer.drain()
@@ -172,21 +178,9 @@ class Client(object):
             await writer.drain()
 
             # send file info
-            filename = destination_path.split('/')[-1]
-            path = destination_path[:len(destination_path)-len(filename)]
-            # TODO: implement contracts
-            #payload = contract.FileMessage(self._system, filename, path, file_size)
-            payload = {
-                "system": str(self._system),
-                "type": "file",
-                "data": {
-                    "filename": filename,
-                    "path": path,
-                    "filesize": file_size,
-                    "data": data
-                }
-            }
-            jsonpayload = json.dumps(payload) + "\n"
+            payload = contract.FileMessage(self._system, destination_path, file_size, data)
+            print(payload)
+            jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             writer.write(bytes(jsonpayload, encoding="utf-8"))
             await writer.drain()
 

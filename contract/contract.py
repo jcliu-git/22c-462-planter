@@ -1,20 +1,28 @@
 import datetime
 from enum import Enum
+from json import dumps, JSONEncoder
 from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedDict
 
-def serialize(obj):
-    return obj.__dict__
-class System(Enum):
+class ContractEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Message):
+            return o.__dict__
+
+class System(str, Enum):
     HUB = "hub"
     MONITORING = "monitor"
     SUBSURFACE = "subsurface"
     CAMERA = "camera"
-    TEST = "test"
 
     def __str__(self):
         return str(self.value)
 
-class MessageType(Enum):
+    def __repr__(self):
+        return str(self.value)
+    
+
+
+class MessageType(str, Enum):
     # generics
     DATA = "data"
     FILE_MESSAGE = "file"
@@ -26,17 +34,19 @@ class MessageType(Enum):
     def __str__(self):
         return str(self.value)
 
+    def __repr__(self):
+        return str(self.value)
 
 # top level definitions
 
 DataType = TypeVar("DataType")
 
-# TODO: reimplement these, commented out for now so that python is happy
 
-"""class IMessage(TypedDict, Generic[DataType]):
+class IMessage(TypedDict, Generic[DataType]):
     type: MessageType
     system: System
-    data: DataType"""
+    data: DataType
+
 
 
 class Message(Generic[DataType]):
@@ -49,9 +59,12 @@ class Message(Generic[DataType]):
         self.system = system
         self.data = data
 
-"""    @staticmethod
+    def __repr__(self):
+        return dumps(self.__dict__)
+
+    @staticmethod
     def fromJson(message: IMessage[DataType]):
-        return Message[DataType](message["type"], message["system"], message["data"])"""
+        return Message[DataType](message["type"], message["system"], message["data"])
 
 
 class GenericMessage(Message[Any]):
@@ -60,6 +73,14 @@ class GenericMessage(Message[Any]):
 class PackageDirection(Enum):
     INBOUND = "inbound"
     OUTBOUND = "outbound"
+
+class DataMessage(GenericMessage):
+    def __init__(self, system, data):
+        super().__init__(
+            MessageType.DATA,
+            system,
+            data
+        )
 
 # file
 
@@ -74,7 +95,9 @@ class FileMessage(Message[FileMetadata]):
     path: str
     filesize: int
 
-    def __init__(self, system: System, filename: str, path: str, filesize: int, data = None):
+    def __init__(self, system: System, destination_path: str, filesize: int, data = None):
+        filename = destination_path.split("/")[-1]
+        path = destination_path[:len(destination_path)-len(filename)]
         super().__init__(
             MessageType.FILE_MESSAGE,
             system,
@@ -104,11 +127,11 @@ class MoistureReadingMessage(Message[IMoistureData]):
             {"moisture": moisture, "timestamp": timestamp},
         )
 
-"""    @staticmethod
+    @staticmethod
     def fromJson(message: IMessage[IMoistureData]):
         return MoistureReadingMessage(
             message["data"]["moisture"], message["data"]["timestamp"]
-        )"""
+        )
 
 
 # monitoring definitions
@@ -137,10 +160,10 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
             {"filename": filename, "phototype": phototype, "timestamp": timestamp},
         )
 
-"""    @staticmethod
+    @staticmethod
     def fromJson(message: IMessage[PhotoCapture]):
         return PhotoCaptureMessage(
             message["data"]["filename"],
             message["data"]["phototype"],
             message["data"]["timestamp"],
-        )"""
+        )
