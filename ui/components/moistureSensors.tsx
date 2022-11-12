@@ -25,25 +25,25 @@ export function MoistureSensors(): JSX.Element {
   const min = 180;
 
   const {
-    sensor_1,
-    sensor_2,
-    sensor_3,
-    sensor_4,
-    sensor_5,
-    sensor_6,
-    sensor_7,
-    sensor_8,
+    sensor1,
+    sensor2,
+    sensor3,
+    sensor4,
+    sensor5,
+    sensor6,
+    sensor7,
+    sensor8,
   } = moisture;
 
   const sensors = [
-    sensor_1,
-    sensor_2,
-    sensor_3,
-    sensor_4,
-    sensor_5,
-    sensor_6,
-    sensor_7,
-    sensor_8,
+    sensor1,
+    sensor2,
+    sensor3,
+    sensor4,
+    sensor5,
+    sensor6,
+    sensor7,
+    sensor8,
   ];
   return (
     <Box sx={{ display: "flex", width: "350px", flexFlow: "row wrap" }}>

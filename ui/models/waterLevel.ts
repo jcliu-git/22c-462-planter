@@ -23,7 +23,7 @@ export const waterLevel = createModel<RootModel>()({
     // use async/await for async actions
     async fetchLatestWaterLevelLevels() {
       let levels = await api.waterLevel.getLatestWaterLevel();
-      dispatch.replace(levels);
+      dispatch.waterLevel.replace(levels);
     },
   }),
 });
