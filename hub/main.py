@@ -42,8 +42,6 @@ async def handle_messages(controlHub):
                     }
                 """
                 pass
-        else:
-            print("nope")
 
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
