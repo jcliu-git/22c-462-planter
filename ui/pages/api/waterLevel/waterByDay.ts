@@ -16,11 +16,11 @@ export default async function handler(
   sevenDaysAgo_.setDate(sevenDaysAgo_.getDate() - 7);
   let sevenDaysAgo = sevenDaysAgo_.toISOString();
   let result = await database.query(
-    "select SUM(value) from water_level where date(timestamp) between '" +
-      currentDay +
-      "' AND '" +
+    "select value from water_level where date(timestamp) between '" +
       sevenDaysAgo +
-      "'"
+      "' AND '" +
+      currentDay +
+      "';"
   );
 
   res.status(200).json(result.rows);
