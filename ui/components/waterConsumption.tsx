@@ -1,54 +1,41 @@
-import { CustomTheme, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { NonSSRWrapper } from "../util/next";
 
-export function WaterConsumption() {
-  const theme = useTheme<CustomTheme>();
-  let [data, setData] = React.useState([
-    {
-      name: "Page A",
-      uv: 4000,
-      pv: 2400,
-    },
-    {
-      name: "Page B",
-      uv: 3000,
-      pv: 1398,
-    },
-    {
-      name: "Page C",
-      uv: 2000,
-      pv: 9800,
-    },
-    {
-      name: "Page D",
-      uv: 2780,
-      pv: 3908,
-    },
-    {
-      name: "Page E",
-      uv: 1890,
-      pv: 4800,
-    },
-    {
-      name: "Page F",
-      uv: 2390,
-      pv: 3800,
-    },
-    {
-      name: "Page G",
-      uv: 3490,
-      pv: 4300,
-    },
-  ]);
+const data = [
+  {
+    name: "monday",
+    litres: 4000,
+  },
+  {
+    name: "tuesday",
+    litres: 6000,
+  },
+  {
+    name: "wednesday",
+    litres: 2000,
+  },
+  {
+    name: "thursday",
+    litres: 1000,
+  },
+  {
+    name: "friday",
+    litres: 500,
+  },
+];
+
+export function WaterConsumption(): JSX.Element {
+  const theme = useTheme();
 
   return (
-    <BarChart width={730} height={250} data={data}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Bar dataKey="pv" fill="#8884d8" />
-      <Bar dataKey="uv" fill="#82ca9d" />
-    </BarChart>
+    <NonSSRWrapper>
+      <BarChart width={730} height={250} data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" color="red" label={{ fill: "white" }} />
+        <Bar dataKey="litres" fill="#8884d8" />
+      </BarChart>
+    </NonSSRWrapper>
   );
 }

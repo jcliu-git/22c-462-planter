@@ -1,4 +1,3 @@
-package databasePopulate;
 import java.sql.*;
 public class waterLevelPopulate {
     public static void run(){

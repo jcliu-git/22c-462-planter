@@ -1,4 +1,3 @@
-package databasePopulate;
 import java.sql.*;
 import java.lang.Math;
 

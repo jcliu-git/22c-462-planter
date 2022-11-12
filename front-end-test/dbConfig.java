@@ -1,4 +1,3 @@
-package databasePopulate;
 public class dbConfig {
     public static final String host = "ec2-44-209-57-4.compute-1.amazonaws.com";
     public static final String database = "da41gg09sivbgs";
