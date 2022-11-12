@@ -1,13 +1,21 @@
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, NoSsr, ThemeProvider } from "@mui/material";
 import theme from "../styles/theme";
+import { CacheProvider } from "@emotion/react";
+import createEmotionCache from "../util/clientSideEmotionCache";
+import { Provider } from "react-redux";
+import { store } from "../models/store";
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps }: any) {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Component {...pageProps} />
-    </ThemeProvider>
+    <NoSsr>
+      <ThemeProvider theme={theme}>
+        <Provider store={store}>
+          <CssBaseline />
+          <Component {...pageProps} />
+        </Provider>
+      </ThemeProvider>
+    </NoSsr>
   );
 }
