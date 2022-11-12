@@ -30,12 +30,10 @@ export function WaterConsumption(): JSX.Element {
   const theme = useTheme();
 
   return (
-    <NonSSRWrapper>
-      <BarChart width={730} height={250} data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" color="red" label={{ fill: "white" }} />
-        <Bar dataKey="litres" fill="#8884d8" />
-      </BarChart>
-    </NonSSRWrapper>
+    <BarChart width={730} height={250} data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="name" color="red" label={{ fill: "white" }} />
+      <Bar dataKey="litres" fill="#8884d8" />
+    </BarChart>
   );
 }
