@@ -14,7 +14,7 @@ class System(str, Enum):
     SUBSURFACE = "subsurface"
     CAMERA = "camera"
     IRRIGATION = "irrigation"
-
+    HYDROPONICS = "hydroponics"
     def __str__(self):
         return str(self.value)
 
