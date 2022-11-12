@@ -19,8 +19,8 @@ export namespace api {
     }
   }
   export namespace waterLevel {
-    export async function getLatestWaterLevel(): Promise<waterLevelData> {
-      let resp = await axios<waterLevelData>("/api/water-level/latest");
+    export async function getLatestWaterLevel(): Promise<waterLevelData[]> {
+      let resp = await axios<waterLevelData[]>("/api/water-level/latest");
       return resp.data;
     }
   }

@@ -4,17 +4,14 @@ import { api } from "./api";
 
 export interface waterLevelData {
   timestamp: string;
-  level: number;
+  value: number;
 }
 
 export const waterLevel = createModel<RootModel>()({
-  state: {
-    timestamp: new Date().toISOString(),
-    level: 0,
-  } as waterLevelData, // initial state
+  state: [] as waterLevelData[], // initial state
   reducers: {
     // handle state changes with pure functions
-    replace(state, payload: waterLevelData) {
+    replace(state, payload: waterLevelData[]) {
       return payload;
     },
   },

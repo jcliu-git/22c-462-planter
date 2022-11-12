@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import pg from "pg";
 import database from "../../../models/database";
-import { photoData } from "../../../models/store";
+import { photoData } from "../../../models/photos";
 
 export default async function handler(
   req: NextApiRequest,
