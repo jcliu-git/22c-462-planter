@@ -3,10 +3,9 @@ import { Box } from "@mui/system";
 import { range } from "lodash";
 import React from "react";
 import { Subscription } from "rxjs";
-import { moistureData, store } from "../models/store";
+import { Dispatch, RootState, store } from "../models/store";
 import { calcColor } from "../util/color";
-
-let moistureDataSubscription: Subscription | null = null;
+import { useSelector, useDispatch } from "react-redux";
 
 function adjustNormalizedSensorValue(
   max: number,
@@ -18,15 +17,9 @@ function adjustNormalizedSensorValue(
 
 export function MoistureSensors(): JSX.Element {
   const theme = useTheme<Theme>();
-  const [moisture, setMoisture] = React.useState(store.moistureData.value);
 
-  React.useEffect(() => {
-    if (!moistureDataSubscription) {
-      moistureDataSubscription = store.moistureData.subscribe((data) => {
-        setMoisture(data);
-      });
-    }
-  });
+  const moisture = useSelector((state: RootState) => state.moisture);
+  const dispatch = useDispatch<Dispatch>();
 
   const max = 500;
   const min = 180;

@@ -3,20 +3,26 @@ import { Grid, Theme, useTheme } from "@mui/material";
 import { Slide } from "react-slideshow-image";
 import "react-slideshow-image/dist/styles.css";
 import { Subscription } from "rxjs";
-import { photoData, store } from "../models/store";
+import { Dispatch, RootState, store } from "../models/store";
+import { NonSSRWrapper } from "../util/next";
+import { useDispatch, useSelector } from "react-redux";
 
 let photoDataSubscription: Subscription | null = null;
 
 const Slideshow = () => {
   const theme = useTheme<Theme>();
-  const [photoData, setphotoData] = React.useState(store.photoData.value);
-  React.useEffect(() => {
-    if (!photoDataSubscription) {
-      photoDataSubscription = store.photoData.subscribe((data) => {
-        setphotoData(data);
-      });
-    }
-  });
+  // const [photoData, setphotoData] = React.useState(store.photoData.value);
+  // React.useEffect(() => {
+  //   if (!photoDataSubscription) {
+  //     photoDataSubscription = store.photoData.subscribe((data) => {
+  //       setphotoData(data);
+  //     });
+  //   }
+  // });
+  const photoData = useSelector((state: RootState) => state.photos);
+  const dispatch = useDispatch<Dispatch>();
+
+  if (!photoData.length) return null;
   return (
     <div
       className="slide-container"
