@@ -46,10 +46,13 @@ class MessageType(str, Enum):
 DataType = TypeVar("DataType")
 
 
-class IMessage(TypedDict, Generic[DataType]):
+class IMessage(TypedDict):
     type: MessageType
     system: System
     data: DataType
+
+    def __repr__(self):
+        return self.__dict__
 
 
 
@@ -67,8 +70,8 @@ class Message(Generic[DataType]):
         return dumps(self.__dict__)
 
     @staticmethod
-    def fromJson(message: IMessage[DataType]):
-        return Message[DataType](message["type"], message["system"], message["data"])
+    def fromJson(message):
+        return Message(message["type"], message["system"], message["data"])
 
 
 class GenericMessage(Message[Any]):
