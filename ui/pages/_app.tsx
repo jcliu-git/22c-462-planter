@@ -7,23 +7,15 @@ import createEmotionCache from "../util/clientSideEmotionCache";
 import { Provider } from "react-redux";
 import { store } from "../models/store";
 
-const clientSideEmotionCache = createEmotionCache();
-
-export default function App({
-  Component,
-  pageProps,
-  emotionCache = clientSideEmotionCache,
-}: any) {
+export default function App({ Component, pageProps }: any) {
   return (
     <NoSsr>
-      <CacheProvider value={emotionCache}>
-        <ThemeProvider theme={theme}>
-          <Provider store={store}>
-            <CssBaseline />
-            <Component {...pageProps} />
-          </Provider>
-        </ThemeProvider>
-      </CacheProvider>
+      <ThemeProvider theme={theme}>
+        <Provider store={store}>
+          <CssBaseline />
+          <Component {...pageProps} />
+        </Provider>
+      </ThemeProvider>
     </NoSsr>
   );
 }
