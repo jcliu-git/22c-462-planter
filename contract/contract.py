@@ -13,6 +13,7 @@ class System(str, Enum):
     MONITORING = "monitor"
     SUBSURFACE = "subsurface"
     CAMERA = "camera"
+    IRRIGATION = "irrigation"
 
     def __str__(self):
         return str(self.value)
@@ -26,10 +27,13 @@ class MessageType(str, Enum):
     # generics
     DATA = "data"
     FILE_MESSAGE = "file"
+
     # subsurface
     MOISTURE_READING = "moisture_reading"
     # monitoring
     MOTION_DETECTED = "motion_detected"
+    # camera
+    # irrigation
 
     def __str__(self):
         return str(self.value)

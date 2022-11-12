@@ -6,13 +6,17 @@ import json
 import os
 import sys
 import logging
+from datetime import datetime
 from pathlib import Path
 from threading import Thread
 from typing import Any, AsyncGenerator, Generator
 sys.path.append("../")
 import contract.contract as contract
 
-logging.basicConfig(filename="network.log", encoding="utf-8")
+Path("logs").mkdir(parents=True, exist_ok=True)
+logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
+logpath = f"logs/{logname}"
+logging.basicConfig(filename=logpath, encoding="utf-8")
 
 class ControlHub(object):
     """
@@ -37,6 +41,7 @@ class ControlHub(object):
     async def startServer(self):
         self._server = await asyncio.start_server(self._listen, self._host, self._port)
         asyncio.create_task(self._server.serve_forever())
+        print("Server has started.")
 
     async def _listen(self, reader, writer):
         data = await reader.readline()
@@ -54,9 +59,7 @@ class ControlHub(object):
             #print(data)
             try:
                 payload = json.loads(data)
-                if payload["type"] == "data":
-                    await self.queue.put(payload)
-                if payload["type"] == "file":
+                if payload["type"] == contract.MessageType.FILE_MESSAGE:
                     filepath = payload["data"]["path"] + payload["data"]["filename"]
                     logging.info("File: %s", filepath)
                     
@@ -80,6 +83,8 @@ class ControlHub(object):
                         print("File transfer done. Removing", system_name)
                         del self._clients[system_name]
                         break
+                else:
+                    await self.queue.put(payload)
             except Exception as err:
                 logging.error(err)
 
@@ -91,6 +96,12 @@ class ControlHub(object):
         writer.write(encoded)
         await writer.drain()
         
+    async def stream(self):
+        while True:
+            queueItem = await self.queue.get()
+            yield contract.Message.fromJson(queueItem)
+
+
 class Client(object):
     """
     Client class
@@ -209,3 +220,43 @@ class Client(object):
         # sending files is slow, better to do it on a different thread in a separate event loop
         thread = Thread(target=asyncio.run, args=(self._send_file(source_path, destination_path, data),), daemon = True)
         thread.start()
+
+    async def stream(self) -> contract.IMessage:
+        while True:
+            queueItem = await self.queue.get()
+            yield contract.Message.fromJson(queueItem)
+
+"""
+HUB = "hub"
+MONITORING = "monitor"
+SUBSURFACE = "subsurface"
+CAMERA = "camera"
+IRRIGATION = "irrigation"
+"""
+
+class MonitoringClient(Client):
+    def __init__(self, system: contract.System = contract.System.MONITORING, host: str = "127.0.0.1", port: int = 32132):
+        super().__init__(system, host, port)
+
+class SubsurfaceClient(Client):
+    def __init__(self, system: contract.System = contract.System.SUBSURFACE, host: str = "127.0.0.1", port: int = 32132):
+        super().__init__(system, host, port)
+
+    def logMoistureData(self, data: contract.MoistureReadingMessage):
+        """
+            Send moisture data to hub
+            if the timestamp is not specified it will be added for you
+        """
+        if data.timestamp is None:
+            data.timestamp = datetime.datetime.now()
+
+
+        self.sendData(data)
+
+class CameraClient(Client):
+    def __init__(self, system: contract.System = contract.System.CAMERA, host: str = "127.0.0.1", port: int = 32132):
+        super().__init__(system, host, port)
+
+class IrrigationClient(Client):
+    def __init__(self, system: contract.System = contract.System.IRRIGATION, host: str = "127.0.0.1", port: int = 32132):
+        super().__init__(system, host, port)
