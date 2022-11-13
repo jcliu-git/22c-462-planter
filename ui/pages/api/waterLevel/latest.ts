@@ -5,23 +5,13 @@ import { waterLevelData } from "../../../models/waterLevel";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<waterLevelData[]>
+  res: NextApiResponse<waterLevelData>
 ) {
   try {
-    let currentDay = new Date().toISOString().replace(/T.*/,'');
-    let sevenDaysAgo_ = new Date();
-    sevenDaysAgo_.setDate(sevenDaysAgo_.getDate() - 7);
-    let sevenDaysAgo = sevenDaysAgo_.toISOString().replace(/T.*/,''); //get the date only 
-
-    let result = await database.query(
-      "select value from water_level where date(timestamp) between '" +
-      sevenDaysAgo +
-      "' AND '" +
-      currentDay +
-      "';"
+    let result = await database.query<waterLevelData>(
+      "select * from water_level order by id desc limit 1"
     );
-    let data = result.rows;
-    res.status(200).json(data);
+    res.status(200).json(result.rows[0]);
   } catch (e) {
     res.status(500).end();
   }

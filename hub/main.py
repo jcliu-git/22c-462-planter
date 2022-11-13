@@ -1,9 +1,95 @@
 import sys
+import os
+from pathlib import Path
 from time import sleep
 import asyncio
+import psycopg2
+import random
+import time
+
 sys.path.append("../")
 import contract.contract as contract
 from hub.network462 import ControlHub
+
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
+conn = psycopg2.connect(DATABASE_URL)
+conn.autocommit = True
+curr = conn.cursor()
+
+
+def insertDB(table: str, cols: str, data: str):
+    print(f"INSERT INTO {table} ({cols}) VALUES({data})")
+    curr.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
+    conn.commit()
+
+
+def insertMoistureLevel(message: contract.MoistureReadingMessage):
+    table = "moisture_level"
+    cols = "timestamp, sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8"
+    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
+    values = ",".join(
+        str(x)
+        for x in [
+            message.data["timestamp"],
+            message.data["sensor1"],
+            message.data["sensor2"],
+            message.data["sensor3"],
+            message.data["sensor4"],
+            message.data["sensor5"],
+            message.data["sensor6"],
+            message.data["sensor7"],
+            message.data["sensor8"],
+        ]
+    )
+    insertDB(table, cols, values)
+
+
+def insertLight(message: contract.LightData):
+    table = "light"
+    cols = "timestamp, value"
+    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
+    values = ",".join(
+        str(x) for x in [message.data["timestamp"], message.data["value"]]
+    )
+    insertDB(table, cols, values)
+
+
+def insertWaterLevel(message: contract.WaterLevelData):
+    table = "water_level"
+    cols = "timestamp,value"
+    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
+    values = ",".join(
+        str(x) for x in [message.data["timestamp"], message.data["value"]]
+    )
+    insertDB(table, cols, values)
+
+
+def insertPhoto(message: contract.PhotoCaptureMessage):
+    table = "photos"
+    cols = "timestamp, filepath, width, height"
+    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
+    message.data["filepath"] = f"'{message.data['filepath']}'"
+    values = ",".join(
+        str(x)
+        for x in [
+            message.data["timestamp"],
+            message.data["filepath"],
+            message.data["width"],
+            message.data["height"],
+        ]
+    )
+    insertDB(table, cols, values)
+
+
+def insertTemperature(message: contract.TemperatureData):
+    table = "temperature"
+    cols = "timestamp, value"
+    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
+    values = ",".join(
+        str(x) for x in [message.data["timestamp"], message.data["value"]]
+    )
+    insertDB(table, cols, values)
+
 
 async def handle_messages(controlHub):
     # asynchronous generator
@@ -14,34 +100,57 @@ async def handle_messages(controlHub):
         if message.system == contract.System.SUBSURFACE:
             # testing for now
             if message.type == contract.MessageType.DATA:
-                print("data received, sending response")
-                await controlHub.sendData(message.system, message.data)
-            if message.type == contract.MessageType.FILE_MESSAGE:
-                print("file received, sending response")
-                await controlHub.sendData(message.system, message.data)
-        if message.system == contract.System.HYDROPONICS:
-            if message.type == contract.MessageType.DATA:
-                """
-                message.data:
-                {
-                    "depth": int,
-                    "temperature": int,
-                    "moisture": int,
-                    "light": int
-                }
-                """
-                pass
+                if message.data["type"] == contract.SubsurfaceDataType.MOISTURE:
+                    insertMoistureLevel(message)
+
+                # await controlHub.sendData(message.system, message.data)
+            # if message.type == contract.MessageType.FILE_MESSAGE:
+            #     await controlHub.sendData(message.system, message.data)
+        # if message.system == contract.System.HYDROPONICS:
+        #     if message.type == contract.MessageType.DATA:
+        #         """
+        #         message.data:
+        #         {
+        #             "depth": int,
+        #             "temperature": int,
+        #             "moisture": int,
+        #             "light": int
+        #         }
+        #         """
+
+        #         pass
+        if message.system == contract.System.MONITORING:
+            if message.type == contract.MessageType.TEMPERATURE:
+                insertTemperature(message)
+            if message.type == contract.MessageType.LIGHT_READING:
+                insertLight(message)
+            if message.type == contract.MessageType.WATER_LEVEL:
+                insertWaterLevel(message)
+
         if message.system == contract.System.CAMERA:
             if message.type == contract.FILE_MESSAGE:
                 """
-                    message.data.data:
-                    {
-                        "time":,
-                        "type": periodic/motion,
-                        "filename" str
-                    }
+                message.data.data:
+                {
+                    "time": "YYYY-MM-DD hh:mm:ss,
+                    "type": periodic/motion,
+                    "filepath" str
+                }
                 """
-                pass
+                # TODO add contract for this
+                if message.data["data"]["phototype"] == "periodic":
+                    filename = message.data["data"]["filename"]
+                    Path("../ui/public/periodic/").mkdir(parents=True, exist_ok=True)
+                    os.replace(filename, "../ui/public/periodic/" + filename)
+                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
+                    insertMonitorEvent(photocaptureMessage)
+                if message.data["data"]["phototype"] == "motion":
+                    filename = message.data["data"]["filename"]
+                    Path("../ui/public/motion/").mkdir(parents=True, exist_ok=True)
+                    os.replace(filename, "../ui/public/motion/" + filename)
+                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
+                    insertMonitorEvent(photocaptureMessage)
+
 
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
@@ -53,5 +162,6 @@ async def main():
     # control hub monitoring, can be crated as another task
     while True:
         await asyncio.sleep(2)
+
 
 asyncio.run(main())

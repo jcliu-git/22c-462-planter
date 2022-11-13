@@ -4,6 +4,7 @@ import { api } from "./api";
 
 export interface photoData {
   filepath: string;
+  timestamp: string;
   width: number;
   height: number;
 }
@@ -20,8 +21,12 @@ export const photos = createModel<RootModel>()({
     // handle state changes with impure functions.
     // use async/await for async actions
     async fetchLatestPhotos() {
-      let photos = await api.photos.getLatestPhotos();
-      dispatch.photos.add(photos);
+      try {
+        let photos = await api.photos.getLatestPhotos();
+        dispatch.photos.add(photos);
+      } catch (e) {
+        console.log(e);
+      }
     },
   }),
 });

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { temperatureData } from "./temperature";
+import { TemperatureData } from "./temperature";
 import { waterLevelData } from "./waterLevel";
 import { lightData } from "./light";
 import { moistureData } from "./moisture";
@@ -19,20 +19,28 @@ export namespace api {
     }
   }
   export namespace waterLevel {
-    export async function getLatestWaterLevel(): Promise<waterLevelData[]> {
-      let resp = await axios<waterLevelData[]>("/api/water-level/latest");
+    export async function getLatestWaterLevel(): Promise<waterLevelData> {
+      let resp = await axios<waterLevelData>("/api/waterLevel/latest");
       return resp.data;
     }
   }
   export namespace temperature {
-    export async function getLatestTemperature(): Promise<temperatureData> {
-      let resp = await axios<temperatureData>("/api/temperature/latest");
+    export async function getLatestTemperature(): Promise<TemperatureData> {
+      let resp = await axios<TemperatureData>("/api/weather/temperature");
       return resp.data;
     }
   }
   export namespace light {
     export async function getLatestLuminosity(): Promise<lightData> {
-      let resp = await axios<lightData>("/api/light/latest");
+      let resp = await axios<lightData>("/api/weather/sunlight");
+      return resp.data;
+    }
+  }
+  export namespace waterLevelSevenDays {
+    export async function getLatestWaterLevelSevenDay(): Promise<
+      waterLevelData[]
+    > {
+      let resp = await axios<waterLevelData[]>("/api/water-level/sevenDays");
       return resp.data;
     }
   }

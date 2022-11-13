@@ -2,19 +2,24 @@
 -- Please log an issue at https://redmine.postgresql.org/projects/pgadmin4/issues/new if you find any bugs, including reproduction steps.
 BEGIN;
 
+drop table if exists water_level;
+drop table if exists moisture_level;
+drop table if exists temperature;
+drop table if exists light;
+drop table if exists photos;
 
 
-CREATE TABLE IF NOT EXISTS public."waterLevel"
+CREATE TABLE IF NOT EXISTS water_level
 (
-    id integer NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
     "timestamp" timestamp without time zone NOT NULL,
     value double precision NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public."moistureLevel"
+CREATE TABLE IF NOT EXISTS moisture_level
 (
-    id integer NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
     sensor1 double precision NOT NULL,
     sensor2 double precision NOT NULL,
     sensor3 double precision NOT NULL,
@@ -27,17 +32,17 @@ CREATE TABLE IF NOT EXISTS public."moistureLevel"
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.temperature
+CREATE TABLE IF NOT EXISTS temperature
 (
-    id integer NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
     value double precision NOT NULL,
     "timestamp" timestamp without time zone NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.photos
+CREATE TABLE IF NOT EXISTS photos
 (
-    id integer NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
     "timestamp" timestamp without time zone NOT NULL,
     filepath text NOT NULL,
     width integer NOT NULL,
@@ -45,9 +50,9 @@ CREATE TABLE IF NOT EXISTS public.photos
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS public.light
+CREATE TABLE IF NOT EXISTS light
 (
-    id integer NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
     value double precision NOT NULL,
     "timestamp" timestamp without time zone NOT NULL,
     PRIMARY KEY (id)

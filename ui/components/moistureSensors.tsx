@@ -7,14 +7,6 @@ import { Dispatch, RootState, store } from "../models/store";
 import { calcColor } from "../util/color";
 import { useSelector, useDispatch } from "react-redux";
 
-function adjustNormalizedSensorValue(
-  max: number,
-  min: number,
-  value: number
-): number {
-  return (max - min) * value + min;
-}
-
 export function MoistureSensors(): JSX.Element {
   const theme = useTheme<Theme>();
 
@@ -60,11 +52,7 @@ export function MoistureSensors(): JSX.Element {
               borderRadius: "100%",
               width: "32px",
               height: "32px",
-              backgroundColor: calcColor(
-                min,
-                max,
-                adjustNormalizedSensorValue(max, min, sensors[index])
-              ),
+              backgroundColor: calcColor(min, max, sensors[index]),
             }}
           ></Box>
         </Box>

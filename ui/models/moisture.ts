@@ -36,8 +36,12 @@ export const moisture = createModel<RootModel>()({
     // handle state changes with impure functions.
     // use async/await for async actions
     async fetchLatestMoistureLevels() {
-      let levels = await api.moisture.getLatestMoistureLevels();
-      dispatch.moisture.replace(levels);
+      try {
+        let levels = await api.moisture.getLatestMoistureLevels();
+        dispatch.moisture.replace(levels);
+      } catch (e) {
+        console.log(e);
+      }
     },
   }),
 });

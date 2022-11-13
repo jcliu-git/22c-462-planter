@@ -1,9 +1,6 @@
 import "../styles/globals.css";
-import type { AppProps } from "next/app";
 import { CssBaseline, NoSsr, ThemeProvider } from "@mui/material";
 import theme from "../styles/theme";
-import { CacheProvider } from "@emotion/react";
-import createEmotionCache from "../util/clientSideEmotionCache";
 import { Provider } from "react-redux";
 import { store } from "../models/store";
 

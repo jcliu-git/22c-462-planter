@@ -8,22 +8,11 @@ export default async function handler(
   res: NextApiResponse<moistureData>
 ) {
   try {
-    // let result = await database.query(
-    //   "select * from moisture_level order by id desc limit 1"
-    // );
-    // let data = result.rows[0];
-    // res.status(200).json(data);
-    res.status(200).json({
-      timestamp: (new Date()).toISOString(),
-      sensor1: 150,
-      sensor2: 620,
-      sensor3: 620,
-      sensor4: 290,
-      sensor5: 710,
-      sensor6: 500,
-      sensor7: 333,
-      sensor8: 620,
-    })
+    let result = await database.query<moistureData>(
+      "select * from moisture_level order by id desc limit 1"
+    );
+    let data = result.rows[0];
+    res.status(200).json(data);
   } catch (e) {
     res.status(500).end();
   }

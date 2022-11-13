@@ -11,11 +11,10 @@ export function WaterLevel() {
   const waterLevel = useSelector((state: RootState) => state.waterLevel);
   const dispatch = useDispatch<Dispatch>();
 
-
   return (
     <div>
       <h1>Water Level</h1>
-      <h2>{waterLevel.level}</h2>
+      <h2>{waterLevel.value}</h2>
     </div>
   );
 }

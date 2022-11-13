@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from threading import Thread
 from typing import Any, AsyncGenerator, Generator
+
 sys.path.append("../")
 import contract.contract as contract
 
@@ -17,6 +18,7 @@ Path("logs").mkdir(parents=True, exist_ok=True)
 logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
 logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
+
 
 class ControlHub(object):
     """
@@ -31,6 +33,7 @@ class ControlHub(object):
                 system (string/System): name of receiving pi
                 data (any): any json serializable data
     """
+
     def __init__(self, host, port):
         self._host = host
         self._port = port
@@ -49,26 +52,22 @@ class ControlHub(object):
         print("client:", system_name)
         self._clients[system_name] = [reader, writer]
         while True:
-            #print("waiting for data")
+            # print("waiting for data")
             data = await reader.readline()
             if not data:
                 debugmsg = "Client " + system_name + " has disconnected."
                 print(debugmsg)
                 logging.warning(debugmsg)
                 break
-            #print(data)
+            # print(data)
             try:
                 payload = json.loads(data)
                 if payload["type"] == contract.MessageType.FILE_MESSAGE:
-                    filepath = payload["data"]["path"] + payload["data"]["filename"]
+                    filepath = "temp/" + payload["data"]["filename"]
                     logging.info("File: %s", filepath)
-                    
-                    # fix filepath if contains windows style path
-                    if '\\' in filepath:
-                        filepath.replace("/","\\")
 
                     # create directory if doesn't exist
-                    Path(payload["data"]["path"]).mkdir(parents=True, exist_ok=True)
+                    Path("temp/").mkdir(parents=True, exist_ok=True)
 
                     # write to file
                     with open(filepath, "wb+") as file:
@@ -95,7 +94,7 @@ class ControlHub(object):
         encoded = bytes(jsonpayload, encoding="utf-8")
         writer.write(encoded)
         await writer.drain()
-        
+
     async def stream(self):
         while True:
             queueItem = await self.queue.get()
@@ -122,6 +121,7 @@ class Client(object):
                 data (any, optional): Any additional data that would help the server figure out
                     what to do with the file. Defaults to None.
     """
+
     def __init__(self, system, host, port):
         self._system = system
         self._host = host
@@ -136,9 +136,11 @@ class Client(object):
         Connect to the server
         """
         try:
-            #print("connecting")
-            self._reader, self._writer = await asyncio.open_connection(self._host, self._port)
-            #print("connection established")
+            # print("connecting")
+            self._reader, self._writer = await asyncio.open_connection(
+                self._host, self._port
+            )
+            # print("connection established")
 
             # send system name to server
             encoded = str(self._system) + "\n"
@@ -150,17 +152,17 @@ class Client(object):
             print("Disconnected:", err)
 
     async def _receive_messages(self):
-            while True:
-                data = await self._reader.readline()
-                if not data:
-                    logging.error("Server has disconnected.")
-                    break
-                try:
-                    payload = json.loads(data)
-                    if payload["type"] == "data":
-                        await self.queue.put(payload)
-                except Exception as err:
-                    logging.error(err)
+        while True:
+            data = await self._reader.readline()
+            if not data:
+                logging.error("Server has disconnected.")
+                break
+            try:
+                payload = json.loads(data)
+                if payload["type"] == "data":
+                    await self.queue.put(payload)
+            except Exception as err:
+                logging.error(err)
 
     async def sendData(self, data):
         if self._writer is not None:
@@ -172,7 +174,7 @@ class Client(object):
         else:
             print("Sending data failed")
 
-    async def _send_file(self, source_path, destination_path, data):
+    async def _send_file(self, source_path, data):
         # try open
         with open(source_path, "rb") as file:
             # file size
@@ -187,16 +189,16 @@ class Client(object):
                 self._file_counter = 0
             writer.write(encoded.encode("utf-8"))
             await writer.drain()
-
+            filename = source_path.split("/")[-1]
             # send file info
-            payload = contract.FileMessage(self._system, destination_path, file_size, data)
-            print(payload)
+            payload = contract.FileMessage(self._system, filename, file_size, data)
+            # print(payload)
             jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             writer.write(bytes(jsonpayload, encoding="utf-8"))
             await writer.drain()
 
             # send file
-            file.seek(0,0)
+            file.seek(0, 0)
             await asyncio.sleep(1)
             read = file.read()
             writer.write(read)
@@ -207,7 +209,7 @@ class Client(object):
             acknowledgement = await reader.readline()
             writer.close()
 
-    async def sendFile(self, source_path, destination_path, data=None):
+    async def sendFile(self, source_path, data=None):
         """
         Send file to server
 
@@ -218,13 +220,16 @@ class Client(object):
                 what to do with the file. Defaults to None.
         """
         # sending files is slow, better to do it on a different thread in a separate event loop
-        thread = Thread(target=asyncio.run, args=(self._send_file(source_path, destination_path, data),), daemon = True)
+        thread = Thread(
+            target=asyncio.run, args=(self._send_file(source_path, data),), daemon=True
+        )
         thread.start()
 
     async def stream(self) -> contract.IMessage:
         while True:
             queueItem = await self.queue.get()
             yield contract.Message.fromJson(queueItem)
+
 
 """
 HUB = "hub"
@@ -234,29 +239,52 @@ CAMERA = "camera"
 IRRIGATION = "irrigation"
 """
 
+
 class MonitoringClient(Client):
-    def __init__(self, system: contract.System = contract.System.MONITORING, host: str = "127.0.0.1", port: int = 32132):
+    def __init__(
+        self,
+        system: contract.System = contract.System.MONITORING,
+        host: str = "127.0.0.1",
+        port: int = 32132,
+    ):
         super().__init__(system, host, port)
 
+
 class SubsurfaceClient(Client):
-    def __init__(self, system: contract.System = contract.System.SUBSURFACE, host: str = "127.0.0.1", port: int = 32132):
+    def __init__(
+        self,
+        system: contract.System = contract.System.SUBSURFACE,
+        host: str = "127.0.0.1",
+        port: int = 32132,
+    ):
         super().__init__(system, host, port)
 
     def logMoistureData(self, data: contract.MoistureReadingMessage):
         """
-            Send moisture data to hub
-            if the timestamp is not specified it will be added for you
+        Send moisture data to hub
+        if the timestamp is not specified it will be added for you
         """
         if data.timestamp is None:
             data.timestamp = datetime.datetime.now()
 
-
         self.sendData(data)
 
+
 class CameraClient(Client):
-    def __init__(self, system: contract.System = contract.System.CAMERA, host: str = "127.0.0.1", port: int = 32132):
+    def __init__(
+        self,
+        system: contract.System = contract.System.CAMERA,
+        host: str = "127.0.0.1",
+        port: int = 32132,
+    ):
         super().__init__(system, host, port)
 
+
 class IrrigationClient(Client):
-    def __init__(self, system: contract.System = contract.System.IRRIGATION, host: str = "127.0.0.1", port: int = 32132):
+    def __init__(
+        self,
+        system: contract.System = contract.System.IRRIGATION,
+        host: str = "127.0.0.1",
+        port: int = 32132,
+    ):
         super().__init__(system, host, port)
