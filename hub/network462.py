@@ -85,15 +85,18 @@ class ControlHub(object):
                 else:
                     await self.queue.put(payload)
             except Exception as err:
-                logging.error(err)
+                logging.error("Initial message processing failed: %s", err)
 
     async def sendData(self, system, data):
         writer = self._clients[str(system)][1]
         payload = contract.DataMessage(system, data)
         jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
         encoded = bytes(jsonpayload, encoding="utf-8")
-        writer.write(encoded)
-        await writer.drain()
+        try:
+            writer.write(encoded)
+            await writer.drain()
+        except Exception as err:
+            logging.error("Writing failed: %s", err)
 
     async def stream(self):
         while True:
@@ -149,7 +152,7 @@ class Client(object):
 
             asyncio.create_task(self._receive_messages())
         except Exception as err:
-            print("Disconnected:", err)
+            logging.error("Disconnected: %s", err)
 
     async def _receive_messages(self):
         while True:
@@ -162,7 +165,7 @@ class Client(object):
                 if payload["type"] == "data":
                     await self.queue.put(payload)
             except Exception as err:
-                logging.error(err)
+                logging.error("Processing received message failed: %s", err)
 
     async def sendData(self, data):
         if self._writer is not None:
@@ -172,42 +175,45 @@ class Client(object):
             self._writer.write(encoded)
             await self._writer.drain()
         else:
-            print("Sending data failed")
+            logging.error("Socket has been closed or does not exist.")
 
     async def _send_file(self, source_path, data):
         # try open
-        with open(source_path, "rb") as file:
-            # file size
-            file.seek(0, os.SEEK_END)
-            file_size = file.tell()
+        try:
+            with open(source_path, "rb") as file:
+                # file size
+                file.seek(0, os.SEEK_END)
+                file_size = file.tell()
 
-            # connect to server
-            reader, writer = await asyncio.open_connection(self._host, self._port)
-            encoded = str(self._system) + f"_f{self._file_counter}\n"
-            self._file_counter += 1
-            if self._file_counter > 512:
-                self._file_counter = 0
-            writer.write(encoded.encode("utf-8"))
-            await writer.drain()
-            filename = source_path.split("/")[-1]
-            # send file info
-            payload = contract.FileMessage(self._system, filename, file_size, data)
-            # print(payload)
-            jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
-            writer.write(bytes(jsonpayload, encoding="utf-8"))
-            await writer.drain()
+                # connect to server
+                reader, writer = await asyncio.open_connection(self._host, self._port)
+                encoded = str(self._system) + f"_f{self._file_counter}\n"
+                self._file_counter += 1
+                if self._file_counter > 512:
+                    self._file_counter = 0
+                writer.write(encoded.encode("utf-8"))
+                await writer.drain()
+                filename = source_path.split("/")[-1]
+                # send file info
+                payload = contract.FileMessage(self._system, filename, file_size, data)
+                # print(payload)
+                jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
+                writer.write(bytes(jsonpayload, encoding="utf-8"))
+                await writer.drain()
 
-            # send file
-            file.seek(0, 0)
-            await asyncio.sleep(1)
-            read = file.read()
-            writer.write(read)
+                # send file
+                file.seek(0, 0)
+                await asyncio.sleep(1)
+                read = file.read()
+                writer.write(read)
 
-            # cleanup
-            await writer.drain()
-            file.close()
-            acknowledgement = await reader.readline()
-            writer.close()
+                # cleanup
+                await writer.drain()
+                file.close()
+                acknowledgement = await reader.readline()
+                writer.close()
+        except Exception as err:
+            logging.error("Error: %s", err)
 
     async def sendFile(self, source_path, data=None):
         """
