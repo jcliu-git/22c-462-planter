@@ -4,3 +4,5 @@ examples/
 **/.mypy_cache
 **/node_modules
 **/logs
+ui/public/motion
+ui/public/periodic

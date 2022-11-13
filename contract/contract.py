@@ -14,10 +14,15 @@ class ContractEncoder(JSONEncoder):
             return o.__dict__
 
 
-class PhotoType(Enum):
+class PhotoType(str, Enum):
     MOTION = "motion"
     PERIODIC = "periodic"
 
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return str(self.value)
 
 class System(str, Enum):
     HUB = "hub"
@@ -321,13 +326,13 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
     @staticmethod
     def fromJson(message: FileMessage):
         filepath = "../ui/public/"
-        if message.data["phototype"] == "motion":
+        if message.data["data"]["phototype"] == "motion":
             filepath += "motion/"
-        elif message.data["phototype"] == "periodic":
+        elif message.data["data"]["phototype"] == "periodic":
             filepath += "periodic/"
         filepath += message.data["data"]["filename"]
         return PhotoCaptureMessage(
             filepath,
-            message["data"]["phototype"],
-            message["data"]["timestamp"],
+            message.data["data"]["phototype"],
+            message.data["data"]["timestamp"],
         )

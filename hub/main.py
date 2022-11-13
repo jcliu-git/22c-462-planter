@@ -128,29 +128,25 @@ async def handle_messages(controlHub):
                 insertWaterLevel(message)
 
         if message.system == contract.System.CAMERA:
-            if message.type == contract.FILE_MESSAGE:
+            if message.type == contract.MessageType.FILE_MESSAGE:
                 """
-                message.data.data:
+                message.data["data"]:
                 {
-                    "time": "YYYY-MM-DD hh:mm:ss,
-                    "type": periodic/motion,
-                    "filepath" str
+                    "time": YYYY-MM-DD hh:mm:ss,
+                    "phototype": periodic/motion,
+                    "filename": str
                 }
                 """
-                # TODO add contract for this
-                if message.data["data"]["phototype"] == "periodic":
-                    filename = message.data["data"]["filename"]
-                    Path("../ui/public/periodic/").mkdir(parents=True, exist_ok=True)
-                    os.replace(filename, "../ui/public/periodic/" + filename)
-                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
-                    insertMonitorEvent(photocaptureMessage)
-                if message.data["data"]["phototype"] == "motion":
-                    filename = message.data["data"]["filename"]
-                    Path("../ui/public/motion/").mkdir(parents=True, exist_ok=True)
-                    os.replace(filename, "../ui/public/motion/" + filename)
-                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
-                    insertMonitorEvent(photocaptureMessage)
-
+                filename = message.data["data"]["filename"]
+                path = "../ui/public/"
+                if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
+                    path += "periodic/"
+                elif message.data["data"]["phototype"] == contract.PhotoType.MOTION:
+                    path += "motion/"
+                Path(path).mkdir(parents=True, exist_ok=True)
+                os.replace("temp/" + filename, path + filename)
+                photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
+                insertPhoto(photocaptureMessage)
 
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
