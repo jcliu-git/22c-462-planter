@@ -325,7 +325,7 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
 
     @staticmethod
     def fromJson(message: FileMessage):
-        filepath = "../ui/public/"
+        filepath = "/"
         if message.data["data"]["phototype"] == "motion":
             filepath += "motion/"
         elif message.data["data"]["phototype"] == "periodic":
