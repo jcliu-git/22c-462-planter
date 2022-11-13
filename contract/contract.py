@@ -24,6 +24,7 @@ class PhotoType(str, Enum):
     def __repr__(self):
         return str(self.value)
 
+
 class System(str, Enum):
     HUB = "hub"
     MONITORING = "monitor"
@@ -164,6 +165,8 @@ class MoistureReadingMessage(Message[IMoistureData]):
         sensor8: float,
         timestamp: Optional[datetime.datetime] = None,
     ):
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
         super().__init__(
             MessageType.MOISTURE_READING,
             System.SUBSURFACE,

@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from threading import Thread
+from types import AsyncGeneratorType
 from typing import Any, AsyncGenerator, Generator
 
 sys.path.append("../")
@@ -98,9 +99,9 @@ class ControlHub(object):
         except Exception as err:
             logging.error("Writing failed: %s", err)
 
-    async def stream(self):
+    async def stream(self) -> AsyncGenerator[contract.Message, None]:
         while True:
-            queueItem = await self.queue.get()
+            queueItem: contract.Message = await self.queue.get()
             yield contract.Message.fromJson(queueItem)
 
 
@@ -231,7 +232,7 @@ class Client(object):
         )
         thread.start()
 
-    async def stream(self) -> contract.IMessage:
+    async def stream(self) -> AsyncGeneratorType[contract.IMessage, None]:
         while True:
             queueItem = await self.queue.get()
             yield contract.Message.fromJson(queueItem)

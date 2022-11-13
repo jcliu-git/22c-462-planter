@@ -6,6 +6,7 @@ import asyncio
 import psycopg2
 import random
 import time
+import shutil
 
 sys.path.append("../")
 import contract.contract as contract
@@ -91,62 +92,91 @@ def insertTemperature(message: contract.TemperatureData):
     insertDB(table, cols, values)
 
 
-async def handle_messages(controlHub):
+async def handle_messages(controlHub: ControlHub):
     # asynchronous generator
     stream = controlHub.stream()
     async for message in stream:
         # do something based on what message you get
-        print(message)
-        if message.system == contract.System.SUBSURFACE:
-            # testing for now
-            if message.type == contract.MessageType.DATA:
-                if message.data["type"] == contract.SubsurfaceDataType.MOISTURE:
-                    insertMoistureLevel(message)
+        try:
+            print(message)
+            if message.system == contract.System.SUBSURFACE:
+                # testing for now
+                if message.type == contract.MessageType.DATA:
+                    if message.data["type"] == contract.SubsurfaceDataType.MOISTURE:
+                        insertMoistureLevel(message)
 
-                # await controlHub.sendData(message.system, message.data)
-            # if message.type == contract.MessageType.FILE_MESSAGE:
-            #     await controlHub.sendData(message.system, message.data)
-        # if message.system == contract.System.HYDROPONICS:
-        #     if message.type == contract.MessageType.DATA:
-        #         """
-        #         message.data:
-        #         {
-        #             "depth": int,
-        #             "temperature": int,
-        #             "moisture": int,
-        #             "light": int
-        #         }
-        #         """
+                    # await controlHub.sendData(message.system, message.data)
+                # if message.type == contract.MessageType.FILE_MESSAGE:
+                #     await controlHub.sendData(message.system, message.data)
+            # if message.system == contract.System.HYDROPONICS:
+            #     if message.type == contract.MessageType.DATA:
+            #         """
+            #         message.data:
+            #         {
+            #             "depth": int,
+            #             "temperature": int,
+            #             "moisture": int,
+            #             "light": int
+            #         }
+            #         """
 
-        #         pass
-        if message.system == contract.System.MONITORING:
-            if message.type == contract.MessageType.TEMPERATURE:
-                insertTemperature(message)
-            if message.type == contract.MessageType.LIGHT_READING:
-                insertLight(message)
-            if message.type == contract.MessageType.WATER_LEVEL:
-                insertWaterLevel(message)
+            #         pass
+            if message.system == contract.System.MONITORING:
+                if message.type == contract.MessageType.TEMPERATURE:
+                    insertTemperature(message)
+                if message.type == contract.MessageType.LIGHT_READING:
+                    insertLight(message)
+                if message.type == contract.MessageType.WATER_LEVEL:
+                    insertWaterLevel(message)
+                if message.type == "data":
+                    print("inserting sensor data", message.data)
+                    insertMoistureLevel(
+                        contract.MoistureReadingMessage(
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                            message.data["moisture"],
+                        )
+                    )
+                    insertLight(contract.LightReadingMessage(message.data["light"]))
+                    insertWaterLevel(
+                        contract.WaterLevelReadingMessage(message.data["depth"])
+                    )
+                    insertTemperature(
+                        contract.TemperatureDataReadingMessage(
+                            message.data["temperature"]
+                        )
+                    )
 
-        if message.system == contract.System.CAMERA:
-            if message.type == contract.MessageType.FILE_MESSAGE:
-                """
-                message.data["data"]:
-                {
-                    "time": YYYY-MM-DD hh:mm:ss,
-                    "phototype": periodic/motion,
-                    "filename": str
-                }
-                """
-                filename = message.data["data"]["filename"]
-                path = "../ui/public/"
-                if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
-                    path += "periodic/"
-                elif message.data["data"]["phototype"] == contract.PhotoType.MOTION:
-                    path += "motion/"
-                Path(path).mkdir(parents=True, exist_ok=True)
-                os.replace("temp/" + filename, path + filename)
-                photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
-                insertPhoto(photocaptureMessage)
+            if message.system == contract.System.CAMERA:
+                if message.type == contract.MessageType.FILE_MESSAGE:
+                    """
+                    message.data["data"]:
+                    {
+                        "time": YYYY-MM-DD hh:mm:ss,
+                        "phototype": periodic/motion,
+                        "filename": str
+                    }
+                    """
+                    filename = message.data["data"]["filename"]
+                    print("processing file: " + filename)
+                    path = "../ui/public/"
+                    # if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
+                    #     path += "periodic/"
+                    # elif message.data["data"]["phototype"] == contract.PhotoType.MOTION:
+                    #     path += "motion/"
+                    Path(path).mkdir(parents=True, exist_ok=True)
+                    print("placing file here: " + path + filename)
+                    shutil.move("temp/" + filename, path + filename)
+                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
+                    insertPhoto(photocaptureMessage)
+        except:
+            print("something broke")
+
 
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
