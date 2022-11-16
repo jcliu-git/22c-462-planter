@@ -34,7 +34,7 @@ APIURL5day3hourXML = r"https://api.openweathermap.org/data/2.5/forecast?lat=30.6
 r = requests.get(APIURL5day3hourXML)
 content = BeautifulSoup(r.content)
 
-bigSection = content.findAll('time')
+bigSection = content.findAll("time")
 # print(bigSection)
 times = []
 weathers = []
@@ -106,20 +106,19 @@ for i in range(len(weathers)):
 # and set the environment variables. See http://twil.io/secure
 if txtMsg:
     print(txtMsg)
-    account_sid = os.environ['TWILIO_ACCOUNT_SID'] = 'ACbd59276b1fca8fa84dbcf3805586d2d5'
-    auth_token = os.environ['TWILIO_AUTH_TOKEN'] = '6b265b1b3becfaa7ccf997821775525c'
+    account_sid = os.environ[
+        "TWILIO_ACCOUNT_SID"
+    ] = "ACbd59276b1fca8fa84dbcf3805586d2d5"
+    auth_token = os.environ["TWILIO_AUTH_TOKEN"] = "6b265b1b3becfaa7ccf997821775525c"
     client = Client(account_sid, auth_token)
 
-    message = client.messages \
-                    .create(
-                         body=txtMsg,
-                         from_='+18318300211',
-                         to='+15129175550'
-                     )
+    message = client.messages.create(
+        body=txtMsg, from_="+18318300211", to="+15129175550"
+    )
 
     print(message.sid)
 
-'''
+"""
 bigSection = soup.find('lib-precipitation-graph')
 spans = bigSection.findAll('span')
 print(spans)
@@ -129,4 +128,4 @@ for element in spans:
     print(element['class'])
     if "statement-text" in element['class']:
         print("found it!!!!!!!!!!", element.text)
-'''
+"""
