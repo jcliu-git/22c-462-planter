@@ -9,12 +9,12 @@ export function TemperatureSensor() {
   const temperature = useSelector((state: RootState) => state.temperature);
   const dispatch = useDispatch<Dispatch>();
 
-  console.log(temperature);
+  // console.log(temperature);
 
   return (
     <div>
       <h1>Temperature</h1>
-      <h2>{temperature.value}</h2>
+      <h2>{temperature.value.toFixed(2)}</h2>
     </div>
   );
 }
