@@ -10,7 +10,7 @@ export function LightSensor() {
 
   const light = useSelector((state: RootState) => state.light);
   const dispatch = useDispatch<Dispatch>();
-  console.log(light);
+  // console.log(light);
   return (
     <div>
       <h1>Luminosity</h1>

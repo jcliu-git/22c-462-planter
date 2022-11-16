@@ -1,12 +1,12 @@
 export class Scheduler {
   intervalId: number | undefined;
   routines: (() => void)[] = [];
-  constructor(public updateInterval: number = 10000) {}
+  constructor(public updateInterval: number = 1000) {}
   addRoutines(...routines: (() => void)[]) {
     for (let routine of routines) {
-      if (this.routines.includes(routine)) {
-        continue;
-      }
+      // if (this.routines.includes(routine)) {
+      //   continue;
+      // }
       this.routines.push(routine);
     }
   }
