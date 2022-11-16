@@ -8,11 +8,13 @@ import contract.contract as contract
 from datetime import date
 from datetime import datetime
 from picamera import PiCamera
+import picamera.array
 from gpiozero import MotionSensor
 from gpiozero import Servo
 import RPi.GPIO as GPIO
 from hub.network462 import Client
 from time import sleep
+import numpy as np
 import json
 
 # client for file transfer
@@ -28,6 +30,23 @@ servo1 = Servo(17)  # 180 servo
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(27, GPIO.OUT)
 servo2 = GPIO.PWM(27, 50)  # continuous servo
+
+class DetectMotion(picamera.array.PiMotionAnalysis):
+    async def analyze(self, a):
+        t = time.localtime()
+        current_date = time.strftime("%b-%d-%Y")
+        current_time = time.strftime("%H-%M-%S", t)
+        a = np.sqrt(
+            np.square(a['x'].astype(np.float)) +
+            np.square(a['y'].astype(np.float))
+            ).clip(0, 255).astype(np.uint8)
+        # If there're more than 5 vectors with a magnitude greater
+        # than 30, then say we've detected motion
+        if (a > 30).sum() > 5:
+            filename = current_date + "_motion_image_" + current_time
+            monitor_event = await camera_capture(current_date, "motion", filename)
+            # await client.sendData(monitor_event)
+            await client.sendFile(filename + ".jpg", monitor_event)
 
 
 async def camera_capture(time, phototype, filename):
@@ -66,6 +85,13 @@ async def main():
         db_time = datetime.now()
         current_time = time.strftime("%H-%M-%S", t)
         if cooldown == False:
+            with picamera.PiCamera() as camera1:
+                with DetectMotion(camera) as output:
+                    camera1.resolution = (640, 480)
+                    camera1.start_recording(
+                        '/dev/null', format='h264', motion_output=output)
+                    camera1.wait_recording(30)
+                    camera1.stop_recording()
             if pir.motion_detected:  # takes picture if detects motion
                 filename = current_date + "_motion_image_" + current_time
                 monitor_event = await camera_capture(current_date, "motion", filename)
