@@ -49,7 +49,6 @@ class MessageType(str, Enum):
     MOISTURE_READING = "moisture_reading"
     # monitoring
     MOTION_DETECTED = "motion_detected"
-    PHOTO_CAPTURED = "photo_captured"
     # camera
     WATER_LEVEL = "water_level"
     LIGHT_READING = "light_reading"
@@ -102,6 +101,11 @@ class Message(Generic[DataType]):
 
 class GenericMessage(Message[Any]):
     data: Any
+
+
+class PackageDirection(Enum):
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
 
 
 class DataMessage(GenericMessage):
@@ -223,7 +227,7 @@ class LightData(TypedDict):
     timestamp: Optional[datetime.datetime]
 
 
-class LightLevelReadingMessage(Message[LightData]):
+class LightReadingMessage(Message[LightData]):
     def __init__(self, value: float, timestamp: Optional[datetime.datetime] = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
@@ -235,7 +239,7 @@ class LightLevelReadingMessage(Message[LightData]):
 
     @staticmethod
     def fromJson(message: HydroponicMessage):
-        return LightLevelReadingMessage(
+        return LightReadingMessage(
             message["data"]["light"], message["data"]["timestamp"]
         )
 
@@ -297,8 +301,6 @@ class PhotoCapture(TypedDict):
     filepath: str
     phototype: PhotoType
     timestamp: Optional[datetime.datetime]
-    width: int
-    height: int
 
 
 class PhotoCaptureMessage(Message[PhotoCapture]):
@@ -311,9 +313,9 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
         height: int = 480,
     ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
-            MessageType.PHOTO_CAPTURED,
+            MessageType.FILE_MESSAGE,
             System.CAMERA,
             {
                 "filepath": filepath,

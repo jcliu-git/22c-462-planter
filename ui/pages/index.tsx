@@ -18,9 +18,8 @@ let scheduler = new Scheduler();
 scheduler.addRoutines(
   store.dispatch.waterLevel.fetchLatestWaterLevelLevels,
   store.dispatch.moisture.fetchLatestMoistureLevels,
-  store.dispatch.temperature.fetchLatestTemperature,
-  store.dispatch.photos.fetchLatestPhotos,
-  store.dispatch.light.fetchLatestLight
+  store.dispatch.waterLevel.fetchLatestWaterLevelLevels,
+  store.dispatch.photos.fetchLatestPhotos
 );
 
 scheduler.start();

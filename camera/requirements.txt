@@ -1,3 +1,0 @@
-picamera = "*"
-gpiozero = "*"
-psycopg2 = "*"
