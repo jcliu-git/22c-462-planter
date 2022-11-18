@@ -15,13 +15,13 @@ async def main():
     try:
         while True:
             try:
-                client.sendWaterLevel(contract.WaterLevelReadingMessage(getDepthData()))
-                client.sendLightLevel(contract.LightLevelReadingMessage(getLightData()))
-                client.sendTemperature(
+                await client.sendWaterLevel(contract.WaterLevelReadingMessage(getDepthData()))
+                await client.sendLightLevel(contract.LightLevelReadingMessage(getLightData()))
+                await client.sendTemperature(
                     contract.TemperatureReadingMessage(getTemperatureData())
                 )
-            except:
-                print("something broke, continuing")
+            except Exception as e:
+                print(e)
 
             time.sleep(3)
     finally:
