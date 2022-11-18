@@ -9,13 +9,27 @@ import {
   IWaterLevelData,
   LightData,
   WaterConsumptionByDay,
+  ServerState,
 } from "./store";
 
 const axios = Axios.create({
   baseURL: "http://localhost:3000",
 });
 
+interface ack {
+  updated: boolean;
+}
+
 export namespace api {
+  export async function fetchState(): Promise<ServerState> {
+    let res = await axios<ServerState>("/api/serverState/fetch");
+    return res.data;
+  }
+  export async function updateState(): Promise<ack> {
+    let res = await axios<ack>("/api/serverState/update");
+    return res.data;
+  }
+
   export namespace dashboard {
     export async function fetchLatest(): Promise<IDashboardState> {
       let data = DashboardState();

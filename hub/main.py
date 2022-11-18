@@ -8,7 +8,9 @@ import psycopg2
 import random
 import time
 import shutil
-
+import json
+import threading
+from flask import Flask, request
 sys.path.append("../")
 import contract.contract as contract
 from hub.network462 import ControlHub
@@ -20,88 +22,88 @@ curr = conn.cursor()
 
 
 class HubState:
-    state: contract.IHubState
+    data: contract.IHubState
 
     def __init__(self, state: Optional[contract.IHubState] = contract.DefaultHubState):
-        self.state = state
+        self.data = state
 
     def setMoisture(self, moisture: contract.MoistureData):
-        self.state["dashboard"]["moisture"] = moisture
+        self.data["dashboard"]["moisture"] = moisture
 
     def getMoisture(self) -> contract.MoistureData:
-        return self.state["dashboard"]["moisture"]
+        return self.data["dashboard"]["moisture"]
 
     def setLight(self, light: contract.LightData):
-        self.state["dashboard"]["light"] = light
+        self.data["dashboard"]["light"] = light
 
     def getLight(self) -> contract.LightData:
-        return self.state["dashboard"]["light"]
+        return self.data["dashboard"]["light"]
 
     def setTemperature(self, temperature: contract.TemperatureData):
-        self.state["dashboard"]["temperature"] = temperature
+        self.data["dashboard"]["temperature"] = temperature
 
     def getTemperature(self) -> contract.TemperatureData:
-        return self.state["dashboard"]["temperature"]
+        return self.data["dashboard"]["temperature"]
 
     def setWaterLevel(self, waterLevel: contract.WaterLevelData):
-        self.state["dashboard"]["waterLevel"] = waterLevel
+        self.data["dashboard"]["waterLevel"] = waterLevel
 
     def getWaterLevel(self) -> contract.WaterLevelData:
-        return self.state["dashboard"]["waterLevel"]
+        return self.data["dashboard"]["waterLevel"]
 
     def addPhoto(self, photo: contract.PhotoCapture):
-        self.state["dashboard"]["photos"].append(photo)
-        while len(self.state["dashboard"]["photos"]) > 10:
-            self.state["dashboard"]["photos"].pop(0)
+        self.data["dashboard"]["photos"].append(photo)
+        while len(self.data["dashboard"]["photos"]) > 10:
+            self.data["dashboard"]["photos"].pop(0)
 
     def getPhotos(self) -> list[contract.PhotoCapture]:
-        return self.state["dashboard"]["photos"]
+        return self.data["dashboard"]["photos"]
 
     def setPlanterEnabled(self, enabled: bool):
-        self.state["control"]["planterEnabled"] = enabled
+        self.data["control"]["planterEnabled"] = enabled
 
     def getPlanterEnabled(self) -> bool:
-        return self.state["control"]["planterEnabled"]
+        return self.data["control"]["planterEnabled"]
 
     def setHydroponicEnabled(self, enabled: bool):
-        self.state["control"]["hydroponicEnabled"] = enabled
+        self.data["control"]["hydroponicEnabled"] = enabled
 
     def getHydroponicEnabled(self) -> bool:
-        return self.state["control"]["hydroponicEnabled"]
+        return self.data["control"]["hydroponicEnabled"]
 
     def setDryThreshold(self, threshold: float):
-        self.state["control"]["dryThreshold"] = threshold
+        self.data["control"]["dryThreshold"] = threshold
 
     def getDryThreshold(self) -> float:
-        return self.state["control"]["dryThreshold"]
+        return self.data["control"]["dryThreshold"]
 
     def setFlowTime(self, flowTime: float):
-        self.state["control"]["flowTime"] = flowTime
+        self.data["control"]["flowTime"] = flowTime
 
     def getFlowTime(self) -> float:
-        return self.state["control"]["flowTime"]
+        return self.data["control"]["flowTime"]
 
     def setResevoirHeight(self, height: float):
-        self.state["control"]["resevoirHeight"] = height
+        self.data["control"]["resevoirHeight"] = height
 
     def getResevoirHeight(self) -> float:
-        return self.state["control"]["resevoirHeight"]
+        return self.data["control"]["resevoirHeight"]
 
     def setEmptyResevoirHeight(self, height: float):
-        self.state["control"]["emptyResevoirHeight"] = height
+        self.data["control"]["emptyResevoirHeight"] = height
 
     def getEmptyResevoirHeight(self) -> float:
-        return self.state["control"]["emptyResevoirHeight"]
+        return self.data["control"]["emptyResevoirHeight"]
 
     def setFullResevoirHeight(self, height: float):
-        self.state["control"]["fullResevoirHeight"] = height
+        self.data["control"]["fullResevoirHeight"] = height
 
     def getFullResevoirHeight(self) -> float:
-        return self.state["control"]["fullResevoirHeight"]
+        return self.data["control"]["fullResevoirHeight"]
 
 
-state: contract.HubState = contract.HubState({})
-
+state = HubState()
+state.data = contract.DefaultHubState
 
 def insertDB(table: str, cols: str, data: str):
     print(f"INSERT INTO {table} ({cols}) VALUES({data})")
@@ -183,42 +185,24 @@ async def handle_messages(controlHub: ControlHub):
     async for message in stream:
         # do something based on what message you get
         try:
+            # TODO: remove print statements below when everything's tested
             print(message)
-            if message.system == contract.System.SUBSURFACE:
-                # testing for now
-                if message.type == contract.MessageType.DATA:
-                    if message.data["type"] == contract.SubsurfaceDataType.MOISTURE:
-                        insertMoistureLevel(message)
-
-                    # await controlHub.sendData(message.system, message.data)
-                # if message.type == contract.MessageType.FILE_MESSAGE:
-                #     await controlHub.sendData(message.system, message.data)
-            # if message.system == contract.System.HYDROPONICS:
-            #     if message.type == contract.MessageType.DATA:
-            #         """
-            #         message.data:
-            #         {
-            #             "depth": int,
-            #             "temperature": int,
-            #             "moisture": int,
-            #             "light": int
-            #         }
-            #         """
-
-            #         pass
             if message.system == contract.System.MONITORING:
                 if message.type == contract.MessageType.TEMPERATURE:
                     # insertTemperature(message)
+                    state.data["dashboard"]["light"] = message.data
                     print(message)
                 if message.type == contract.MessageType.LIGHT_READING:
                     # insertLight(message)
+                    state.data["dashboard"]["light"] = message.data
                     print(message)
                 if message.type == contract.MessageType.WATER_LEVEL:
                     # insertWaterLevel(message)
+                    state.data["dashboard"]["water"] = message.data
                     print(message)
 
             if message.system == contract.System.CAMERA:
-                if message.type == contract.MessageType.FILE_MESSAGE:
+                if message.type == contract.MessageType.PHOTO_CAPTURED:
                     """
                     message.data["data"]:
                     {
@@ -227,7 +211,7 @@ async def handle_messages(controlHub: ControlHub):
                         "filename": str
                     }
                     """
-                    filename = message.data["data"]["filename"]
+                    filename = message.data["filename"]
                     print("processing file: " + filename)
                     path = "../ui/public/"
                     # if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
@@ -239,7 +223,8 @@ async def handle_messages(controlHub: ControlHub):
                     shutil.move("temp/" + filename, path + filename)
                     photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
                     insertPhoto(photocaptureMessage)
-        except:
+        except Exception as err:
+            print(err)
             print("something broke")
 
 
@@ -254,5 +239,17 @@ async def main():
     while True:
         await asyncio.sleep(2)
 
+app = Flask(__name__)
+@app.route('/fetch', methods=['GET'])
+def fetch():
+    ret = json.dumps(state.data, cls=contract.ContractEncoder)
+    return ret
 
-asyncio.run(main())
+@app.route('/update', methods=['POST'])
+def update():
+    message = request.form.to_dict()
+    state.data = message
+
+serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
+serverThread.start()
+app.run(debug=True)

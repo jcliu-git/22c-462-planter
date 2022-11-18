@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum
 from json import dumps, JSONEncoder
-from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedDict
+from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedDict, Dict
 
 
 def now():
@@ -43,6 +43,16 @@ class System(str, Enum):
     def __repr__(self):
         return str(self.value)
 
+# helps the receiving function identify whether this some data or a file
+class MessageIdentifier(str, Enum):
+    DATA = "data"
+    FILE = "file"
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return str(self.value)
 
 class MessageType(str, Enum):
     # generics
@@ -71,7 +81,6 @@ class MessageType(str, Enum):
     def __repr__(self):
         return str(self.value)
 
-
 # top level definitions
 
 DataType = TypeVar("DataType")
@@ -90,18 +99,25 @@ class Message(Generic[DataType]):
     type: MessageType
     system: System
     data: DataType
-
-    def __init__(self, type: MessageType, system: System, data: DataType):
+    identifier: MessageIdentifier
+    def __init__(
+            self, 
+            type: MessageType, 
+            system: System, 
+            data: DataType, 
+            identifier: MessageIdentifier = MessageIdentifier.DATA
+        ):
         self.type = type
         self.system = system
         self.data = data
+        self.identifier = identifier
 
     def __repr__(self):
         return dumps(self.__dict__)
 
     @staticmethod
     def fromJson(message):
-        return Message(message["type"], message["system"], message["data"])
+        return Message(message["type"], message["system"], message["data"], message["identifier"])
 
 
 class GenericMessage(Message[Any]):
@@ -114,21 +130,31 @@ class DataMessage(GenericMessage):
 
 
 # file
-
-
-class FileMetadata(TypedDict):
-    filename: str
-    path: str
-    filesize: int
-    # data: Any
-
-
-class FileMessage(Message[FileMetadata]):
-    def __init__(self, system: System, filename: str, filesize: int, data=None):
+class FileMessage(Message[DataType]):
+    def __init__(
+            self, 
+            system: System, 
+            filename: str = None, 
+            filesize: int = None,
+            data = None, 
+            type: MessageType = MessageType.FILE_MESSAGE, 
+            combine: Dict = {}
+        ):
+        # data is obsolete but is still there just in case
+        # should use combine instead, which combines the python dictionary with
+        # the other important things like filename and filesize in the data dictionary
+        # tl;dr no need to do message["data"]["data"] or message.data["data"] anymore 
+        data_dict = {
+            "filename": filename,
+            "filesize": filesize,
+            "data": data
+        }
+        combined_dict = data_dict | combine
         super().__init__(
-            MessageType.FILE_MESSAGE,
+            type,
             system,
-            {"filename": filename, "filesize": filesize, "data": data},
+            combined_dict,
+            MessageIdentifier.FILE
         )
 
 
@@ -309,10 +335,10 @@ class PhotoCapture(TypedDict):
     height: int
 
 
-class PhotoCaptureMessage(Message[PhotoCapture]):
+class PhotoCaptureMessage(FileMessage):
     def __init__(
         self,
-        filepath: str,
+        filename: str,
         phototype: PhotoType,
         timestamp: Optional[datetime.datetime] = None,
         width: int = 720,
@@ -321,10 +347,10 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
         if timestamp is None:
             timestamp = now()
         super().__init__(
-            MessageType.PHOTO_CAPTURED,
             System.CAMERA,
-            {
-                "filepath": filepath,
+            filename,
+            type = MessageType.PHOTO_CAPTURED,
+            combine = {
                 "phototype": phototype,
                 "timestamp": timestamp,
                 "width": width,
@@ -332,18 +358,24 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
             },
         )
 
+
+    def __repr__(self):
+        return dumps(self.__dict__)
+
     @staticmethod
     def fromJson(message: FileMessage):
         filepath = "/"
-        if message.data["data"]["phototype"] == "motion":
+        if message.data["phototype"] == "motion":
             filepath += "motion/"
-        elif message.data["data"]["phototype"] == "periodic":
+        elif message.data["phototype"] == "periodic":
             filepath += "periodic/"
-        filepath += message.data["data"]["filename"]
+        elif message.data ["phototype"] == "growth":
+            filepath += "growth/"
+        filepath += message.data["filename"]
         return PhotoCaptureMessage(
             filepath,
-            message.data["data"]["phototype"],
-            message.data["data"]["timestamp"],
+            message.data["phototype"],
+            message.data["timestamp"],
         )
 
 
@@ -372,7 +404,10 @@ class IHubState(TypedDict):
 
 DefaultHubState: IHubState = {
     "dashboard": {
-        "moisture": {"moisture": 0.0, "timestamp": now()},
+        "moisture": {
+            "sensor1": 0,
+            "timestamp": now()
+        },
         "light": {"light": 0.0, "timestamp": now()},
         "water": {"waterLevel": 0.0, "timestamp": now()},
         "temperature": {"temperature": 0.0, "timestamp": now()},

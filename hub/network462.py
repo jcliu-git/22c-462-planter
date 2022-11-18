@@ -63,7 +63,7 @@ class ControlHub(object):
             # print(data)
             try:
                 payload = json.loads(data)
-                if payload["type"] == contract.MessageType.FILE_MESSAGE:
+                if payload["identifier"] == contract.MessageIdentifier.FILE:
                     filepath = "temp/" + payload["data"]["filename"]
                     logging.info("File: %s", filepath)
 
@@ -91,6 +91,16 @@ class ControlHub(object):
     async def sendData(self, system, data):
         writer = self._clients[str(system)][1]
         payload = contract.DataMessage(system, data)
+        jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
+        encoded = bytes(jsonpayload, encoding="utf-8")
+        try:
+            writer.write(encoded)
+            await writer.drain()
+        except Exception as err:
+            logging.error("Writing failed: %s", err)
+
+    async def _sendContract(self, system, payload):
+        writer = self._clients[str(system)][1]
         jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
         encoded = bytes(jsonpayload, encoding="utf-8")
         try:
@@ -169,8 +179,22 @@ class Client(object):
                 logging.error("Processing received message failed: %s", err)
 
     async def _sendData(self, data):
+        """Generic data function, shouldn't be used with contracts
+        
+        Args:
+            data (any): any json serializable datatype
+        """
         if self._writer is not None:
             payload = contract.DataMessage(self._system, data)
+            jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
+            encoded = bytes(jsonpayload, encoding="utf-8")
+            self._writer.write(encoded)
+            await self._writer.drain()
+        else:
+            logging.error("Socket has been closed or does not exist.")
+
+    async def _sendContract(self, payload):
+        if self._writer is not None:
             jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             encoded = bytes(jsonpayload, encoding="utf-8")
             self._writer.write(encoded)
@@ -199,6 +223,47 @@ class Client(object):
                 payload = contract.FileMessage(self._system, filename, file_size, data)
                 # print(payload)
                 jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
+                print(jsonpayload)
+                writer.write(bytes(jsonpayload, encoding="utf-8"))
+                await writer.drain()
+
+                # send file
+                file.seek(0, 0)
+                await asyncio.sleep(1)
+                read = file.read()
+                writer.write(read)
+
+                # cleanup
+                await writer.drain()
+                file.close()
+                acknowledgement = await reader.readline()
+                writer.close()
+        except Exception as err:
+            logging.error("Error: %s", err)
+
+    async def _send_file_contract(self, source_path, payload):
+        # try open
+        try:
+            with open(source_path, "rb") as file:
+                # file size
+                file.seek(0, os.SEEK_END)
+                file_size = file.tell()
+
+                # connect to server
+                reader, writer = await asyncio.open_connection(self._host, self._port)
+                encoded = str(self._system) + f"_f{self._file_counter}\n"
+                self._file_counter += 1
+                if self._file_counter > 512:
+                    self._file_counter = 0
+                writer.write(encoded.encode("utf-8"))
+                await writer.drain()
+                filename = source_path.split("/")[-1]
+                payload.data["filesize"] = file_size
+                payload.data["filename"] = filename
+                # send file info
+                # print(payload)
+                jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
+                print(jsonpayload)
                 writer.write(bytes(jsonpayload, encoding="utf-8"))
                 await writer.drain()
 
@@ -232,6 +297,12 @@ class Client(object):
         )
         thread.start()
 
+    async def _sendFileContract(self, source_path, contract):
+        thread = Thread(
+            target=asyncio.run, args=(self._send_file_contract(source_path, contract),), daemon=True
+        )
+        thread.start()
+
     async def stream(self) -> AsyncGeneratorType[contract.IMessage, None]:
         while True:
             queueItem = await self.queue.get()
@@ -257,13 +328,13 @@ class MonitoringClient(Client):
         super().__init__(system, host, port)
 
     async def sendWaterLevel(self, message: contract.WaterLevelReadingMessage):
-        await self._sendData(message)
+        await self._sendContract(message)
 
     async def sendTemperature(self, message: contract.TemperatureReadingMessage):
-        await self._sendData(message)
+        await self._sendContract(message)
 
     async def sendLightLevel(self, message: contract.LightLevelReadingMessage):
-        await self._sendData(message)
+        await self._sendContract(message)
 
 
 class SubsurfaceClient(Client):
@@ -280,7 +351,7 @@ class SubsurfaceClient(Client):
         Send moisture data to hub
         if the timestamp is not specified it will be added for you
         """
-        self._sendData(data)
+        self._sendContract(data)
 
 
 class CameraClient(Client):
@@ -292,5 +363,5 @@ class CameraClient(Client):
     ):
         super().__init__(system, host, port)
 
-    def sendImage(self, source_path: str, data: contract.PhotoCaptureMessage):
-        self._sendFile(source_path, data)
+    async def sendImage(self, source_path: str, data: contract.PhotoCaptureMessage):
+        await self._sendFileContract(source_path, data)
