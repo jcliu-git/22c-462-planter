@@ -240,6 +240,11 @@ export const controlState = createModel<RootModel>()({
   effects: (dispatch) => ({}),
 });
 
+export interface ServerState {
+  dashboard: IDashboardState,
+  control: IControlState
+}
+
 export interface RootModel extends Models<RootModel> {
   dashboard: typeof dashboardState;
   drawer: typeof drawerState;

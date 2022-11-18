@@ -102,7 +102,7 @@ class HubState:
         return self.state["control"]["fullResevoirHeight"]
 
 
-state: contract.HubState = contract.HubState({})
+state: contract.IHubState = HubState()
 
 
 def insertDB(table: str, cols: str, data: str):
