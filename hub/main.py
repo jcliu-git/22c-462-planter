@@ -8,17 +8,17 @@ import psycopg2
 import random
 import time
 import shutil
-
 import json
-
+import threading
+from flask import Flask, request
 sys.path.append("../")
 import contract.contract as contract
 from hub.network462 import ControlHub
 
 DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
-conn = psycopg2.connect(DATABASE_URL)
-conn.autocommit = True
-curr = conn.cursor()
+#conn = psycopg2.connect(DATABASE_URL)
+#conn.autocommit = True
+#curr = conn.cursor()
 
 
 class HubState:
@@ -103,7 +103,7 @@ class HubState:
 
 
 state: contract.IHubState = HubState()
-
+state = contract.DefaultHubState
 
 def insertDB(table: str, cols: str, data: str):
     print(f"INSERT INTO {table} ({cols}) VALUES({data})")
@@ -258,5 +258,20 @@ async def main():
     while True:
         await asyncio.sleep(2)
 
+app = Flask(__name__)
+@app.route('/fetch', methods=['GET'])
+def fetch():
+    ret = json.dumps(state, cls=contract.ContractEncoder)
+    return ret
 
-asyncio.run(main())
+@app.route('/update', methods=['POST'])
+def update():
+    message = request.form.to_dict()
+    if message["system"] == contract.System.MONITORING:
+        if message["type"] == contract.MessageType.TEMPERATURE:
+            print("temperature")
+    return "true"
+
+serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
+serverThread.start()
+app.run(debug=True)
