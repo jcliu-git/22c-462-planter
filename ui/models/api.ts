@@ -1,9 +1,13 @@
-import axios from "axios";
+import Axios from "axios";
 import { TemperatureData } from "./temperature";
 import { waterLevelData } from "./waterLevel";
 import { lightData } from "./light";
 import { moistureData } from "./moisture";
 import { photoData } from "./photos";
+
+const axios = Axios.create({
+  baseURL: "http://localhost:3000",
+});
 
 export namespace api {
   export namespace moisture {

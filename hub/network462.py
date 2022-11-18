@@ -168,7 +168,7 @@ class Client(object):
             except Exception as err:
                 logging.error("Processing received message failed: %s", err)
 
-    async def sendData(self, data):
+    async def _sendData(self, data):
         if self._writer is not None:
             payload = contract.DataMessage(self._system, data)
             jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
@@ -216,7 +216,7 @@ class Client(object):
         except Exception as err:
             logging.error("Error: %s", err)
 
-    async def sendFile(self, source_path, data=None):
+    async def _sendFile(self, source_path, data=None):
         """
         Send file to server
 
@@ -271,10 +271,7 @@ class SubsurfaceClient(Client):
         Send moisture data to hub
         if the timestamp is not specified it will be added for you
         """
-        if data.timestamp is None:
-            data.timestamp = datetime.datetime.now()
-
-        self.sendData(data)
+        self._sendData(data)
 
 
 class CameraClient(Client):
@@ -286,8 +283,11 @@ class CameraClient(Client):
     ):
         super().__init__(system, host, port)
 
+    def sendImage(self, source_path: str, data: contract.PhotoCaptureMessage):
+        self._sendFile(source_path, data)
 
-class IrrigationClient(Client):
+
+class MonitoringClient(Client):
     def __init__(
         self,
         system: contract.System = contract.System.IRRIGATION,
@@ -295,3 +295,12 @@ class IrrigationClient(Client):
         port: int = 32132,
     ):
         super().__init__(system, host, port)
+
+    def sendTemperatureMessage(self, data: contract.TemperatureDataReadingMessage):
+        self._sendData(data)
+
+    def sendWaterLevelMessage(self, data: contract.WaterLevelReadingMessage):
+        self._sendData(data)
+
+    def sendLightLevelMessage(self, data: contract.LightLevelReadingMessage):
+        self._sendData(data)

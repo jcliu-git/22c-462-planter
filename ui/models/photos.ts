@@ -1,4 +1,5 @@
 import { createModel } from "@rematch/core";
+import { uniqBy, uniqWith } from "lodash";
 import { RootModel } from ".";
 import { api } from "./api";
 
@@ -14,7 +15,10 @@ export const photos = createModel<RootModel>()({
   reducers: {
     // handle state changes with pure functions
     add(state, payload: photoData[]) {
-      return [...state, ...payload];
+      return uniqWith(
+        [...state, ...payload],
+        (a, b) => a.filepath == b.filepath
+      );
     },
   },
   effects: (dispatch) => ({
