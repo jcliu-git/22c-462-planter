@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedD
 
 
 def now():
-    return now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 NETWORK_PORT = 32132

@@ -256,14 +256,14 @@ class MonitoringClient(Client):
     ):
         super().__init__(system, host, port)
 
-    def sendWaterLevel(self, message: contract.WaterLevelReadingMessage):
-        self._sendData(message)
+    async def sendWaterLevel(self, message: contract.WaterLevelReadingMessage):
+        await self._sendData(message)
 
-    def sendTemperature(self, message: contract.TemperatureReadingMessage):
-        self._sendData(message)
+    async def sendTemperature(self, message: contract.TemperatureReadingMessage):
+        await self._sendData(message)
 
-    def sendLightLevel(self, message: contract.LightLevelReadingMessage):
-        self._sendData(message)
+    async def sendLightLevel(self, message: contract.LightLevelReadingMessage):
+        await self._sendData(message)
 
 
 class SubsurfaceClient(Client):
