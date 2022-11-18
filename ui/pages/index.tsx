@@ -29,12 +29,10 @@ export default function Dashboard() {
         <Grid item xs={12} sm={12} md={6}>
           <Grid container direction="column">
             <Grid item xl={12}>
-              <p>Temperature + Light</p>
               <TemperatureSensor />
               <LightSensor />
             </Grid>
             <Grid item xl={12}>
-              <p>Current Water Level</p>
               <WaterLevel />
             </Grid>
             <Grid item xl={12}>

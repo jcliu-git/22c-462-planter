@@ -130,12 +130,17 @@ export function WaterLevelData(data?: IWaterLevelData): IWaterLevelData {
   );
 }
 
+export interface WaterConsumptionByDay {
+  [key: string]: number;
+}
+
 export interface IDashboardState {
   light: ILightData;
   moisture: IMoistureData;
   photos: IPhotoData[];
   temperature: ITemperatureData;
   waterLevel: IWaterLevelData;
+  waterConsumptionByDay: WaterConsumptionByDay;
 }
 
 export function DashboardState(data?: IDashboardState): IDashboardState {
@@ -146,6 +151,7 @@ export function DashboardState(data?: IDashboardState): IDashboardState {
       photos: [],
       temperature: TemperatureData(),
       waterLevel: WaterLevelData(),
+      waterConsumptionByDay: {},
     }
   );
 }
@@ -188,8 +194,8 @@ export function ControlState(data?: IControlState): IControlState {
       dryThreshold: 30,
       flowTime: 10,
       calibrating: false,
-      resevoirHeight: 60,
-      emptyResevoirHeight: 60,
+      resevoirHeight: 5000,
+      emptyResevoirHeight: 5000,
       fullResevoirHeight: 0,
     }
   );

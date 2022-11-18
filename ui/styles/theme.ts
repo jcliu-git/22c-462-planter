@@ -7,16 +7,20 @@ const theme = createTheme({
       main: "#357960",
     },
     secondary: {
-      main: "#664C43",
+      main: "#3993DD",
     },
     tertiary: {
-      main: "#D88C9A",
+      main: "#6A3E37",
     },
     light: {
       main: "#F4F3EE",
     },
     dark: {
       main: "#051923",
+    },
+    background: {
+      default: "#051923",
+      paper: "#6A3E37",
     },
 
     mode: "dark",

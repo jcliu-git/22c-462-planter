@@ -6,7 +6,7 @@ import { Dispatch, RootState } from "../models/store";
 const routes: { [key: string]: string } = {
   Dashboard: "/",
   "Control Panel": "/control-panel",
-  Settings: "/settings",
+  // Settings: "/settings",
 };
 
 export function Navigation() {

@@ -8,7 +8,7 @@ export function Masthead() {
   const dispatch = useDispatch<Dispatch>();
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
+      <AppBar position="static" enableColorOnDark={true} color="primary">
         <Toolbar>
           <IconButton
             size="large"
