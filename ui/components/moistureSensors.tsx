@@ -3,54 +3,39 @@ import { Box } from "@mui/system";
 import { range } from "lodash";
 import React from "react";
 import { Subscription } from "rxjs";
-import { moistureData, store } from "../models/store";
+import { Dispatch, RootState, store } from "../models/store";
 import { calcColor } from "../util/color";
-
-let moistureDataSubscription: Subscription | null = null;
-
-function adjustNormalizedSensorValue(
-  max: number,
-  min: number,
-  value: number
-): number {
-  return (max - min) * value + min;
-}
+import { useSelector, useDispatch } from "react-redux";
 
 export function MoistureSensors(): JSX.Element {
   const theme = useTheme<Theme>();
-  const [moisture, setMoisture] = React.useState(store.moistureData.value);
 
-  React.useEffect(() => {
-    if (!moistureDataSubscription) {
-      moistureDataSubscription = store.moistureData.subscribe((data) => {
-        setMoisture(data);
-      });
-    }
-  });
+  const moisture = useSelector((state: RootState) => state.moisture);
+  const dispatch = useDispatch<Dispatch>();
 
   const max = 500;
   const min = 180;
 
   const {
-    sensor_1,
-    sensor_2,
-    sensor_3,
-    sensor_4,
-    sensor_5,
-    sensor_6,
-    sensor_7,
-    sensor_8,
+    sensor1,
+    sensor2,
+    sensor3,
+    sensor4,
+    sensor5,
+    sensor6,
+    sensor7,
+    sensor8,
   } = moisture;
 
   const sensors = [
-    sensor_1,
-    sensor_2,
-    sensor_3,
-    sensor_4,
-    sensor_5,
-    sensor_6,
-    sensor_7,
-    sensor_8,
+    sensor1,
+    sensor2,
+    sensor3,
+    sensor4,
+    sensor5,
+    sensor6,
+    sensor7,
+    sensor8,
   ];
   return (
     <Box sx={{ display: "flex", width: "350px", flexFlow: "row wrap" }}>
@@ -67,11 +52,7 @@ export function MoistureSensors(): JSX.Element {
               borderRadius: "100%",
               width: "32px",
               height: "32px",
-              backgroundColor: calcColor(
-                min,
-                max,
-                adjustNormalizedSensorValue(max, min, sensors[index])
-              ),
+              backgroundColor: calcColor(min, max, sensors[index]),
             }}
           ></Box>
         </Box>

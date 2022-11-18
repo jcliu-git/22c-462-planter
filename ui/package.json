@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/css": "^11.10.5",
     "@emotion/react": "^11.10.5",
+    "@emotion/server": "^11.10.0",
     "@emotion/styled": "^11.10.5",
     "@mui/material": "^5.10.13",
     "@rematch/core": "^2.2.0",
@@ -26,6 +28,7 @@
     "pg": "^8.8.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-redux": "^8.0.5",
     "react-slideshow-image": "^4.0.5",
     "recharts": "^2.1.16",
     "rxjs": "^7.5.7",

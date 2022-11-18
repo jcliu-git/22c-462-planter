@@ -1,8 +1,22 @@
 import { Models } from "@rematch/core";
-import { count } from "./count";
+import { light } from "./light";
+import { moisture } from "./moisture";
+import { photos } from "./photos";
+import { temperature } from "./temperature";
+import { waterLevel } from "./waterLevel";
 
 export interface RootModel extends Models<RootModel> {
-  count: typeof count;
+  moisture: typeof moisture;
+  photos: typeof photos;
+  waterLevel: typeof waterLevel;
+  light: typeof light;
+  temperature: typeof temperature;
 }
 
-export const models: RootModel = { count };
+export const models: RootModel = {
+  moisture,
+  photos,
+  light,
+  temperature,
+  waterLevel,
+};
