@@ -251,10 +251,19 @@ class MonitoringClient(Client):
     def __init__(
         self,
         system: contract.System = contract.System.MONITORING,
-        host: str = "127.0.0.1",
-        port: int = 32132,
+        host: str = contract.NETWORK_HOST,
+        port: int = contract.NETWORK_PORT,
     ):
         super().__init__(system, host, port)
+
+    def sendWaterLevel(self, message: contract.WaterLevelReadingMessage):
+        self._sendData(message)
+
+    def sendTemperature(self, message: contract.TemperatureReadingMessage):
+        self._sendData(message)
+
+    def sendLightLevel(self, message: contract.LightLevelReadingMessage):
+        self._sendData(message)
 
 
 class SubsurfaceClient(Client):
@@ -285,22 +294,3 @@ class CameraClient(Client):
 
     def sendImage(self, source_path: str, data: contract.PhotoCaptureMessage):
         self._sendFile(source_path, data)
-
-
-class MonitoringClient(Client):
-    def __init__(
-        self,
-        system: contract.System = contract.System.IRRIGATION,
-        host: str = "127.0.0.1",
-        port: int = 32132,
-    ):
-        super().__init__(system, host, port)
-
-    def sendTemperatureMessage(self, data: contract.TemperatureDataReadingMessage):
-        self._sendData(data)
-
-    def sendWaterLevelMessage(self, data: contract.WaterLevelReadingMessage):
-        self._sendData(data)
-
-    def sendLightLevelMessage(self, data: contract.LightLevelReadingMessage):
-        self._sendData(data)

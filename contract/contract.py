@@ -5,7 +5,11 @@ from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedD
 
 
 def now():
-    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+NETWORK_PORT = 32132
+NETWORK_HOST = "192.168.3.143"
 
 
 class ContractEncoder(JSONEncoder):
@@ -162,7 +166,7 @@ class MoistureReadingMessage(Message[IMoistureData]):
         timestamp: Optional[datetime.datetime] = None,
     ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.MOISTURE_READING,
             System.SUBSURFACE,
@@ -204,7 +208,7 @@ class HydroponicMessage(Message[HydroponicData]):
         timestamp: Optional[datetime.datetime] = None,
     ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.HYDROPONICS,
             System.HYDROPONICS,
@@ -219,24 +223,26 @@ class HydroponicMessage(Message[HydroponicData]):
 
 
 class LightData(TypedDict):
-    value: float
+    luminosity: float
     timestamp: Optional[datetime.datetime]
 
 
 class LightLevelReadingMessage(Message[LightData]):
-    def __init__(self, value: float, timestamp: Optional[datetime.datetime] = None):
+    def __init__(
+        self, luminosity: float, timestamp: Optional[datetime.datetime] = None
+    ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.LIGHT_READING,
             System.MONITORING,
-            {"value": value, "timestamp": timestamp},
+            {"luminosity": luminosity, "timestamp": timestamp},
         )
 
     @staticmethod
     def fromJson(message: HydroponicMessage):
         return LightLevelReadingMessage(
-            message["data"]["light"], message["data"]["timestamp"]
+            message["data"]["luminosity"], message["data"]["timestamp"]
         )
 
 
@@ -244,49 +250,51 @@ class LightLevelReadingMessage(Message[LightData]):
 
 
 class WaterLevelData(TypedDict):
-    value: float
+    distance: float
     timestamp: Optional[datetime.datetime]
 
 
-class WaterLevelReadingMessage(Message[LightData]):
-    def __init__(self, value: float, timestamp: Optional[datetime.datetime] = None):
+class WaterLevelReadingMessage(Message[WaterLevelData]):
+    def __init__(self, distance: float, timestamp: Optional[datetime.datetime] = None):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.WATER_LEVEL,
             System.MONITORING,
-            {"value": value, "timestamp": timestamp},
+            {"distance": distance, "timestamp": timestamp},
         )
 
     @staticmethod
     def fromJson(message: HydroponicMessage):
         return WaterLevelReadingMessage(
-            message["data"]["depth"], message["data"]["timestamp"]
+            message["data"]["distance"], message["data"]["timestamp"]
         )
 
 
 class TemperatureData(TypedDict):
-    value: float
+    fahrenheit: float
     timestamp: Optional[datetime.datetime]
 
 
-class TemperatureDataReadingMessage(Message[TemperatureData]):
-    value: float
+class TemperatureReadingMessage(Message[TemperatureData]):
+    fahrenheit: float
     timestamp: Optional[datetime.datetime]
 
-    def __init__(self, value: float, timestamp: Optional[datetime.datetime] = None):
+    def __init__(
+        self, fahrenheit: float, timestamp: Optional[datetime.datetime] = None
+    ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.TEMPERATURE,
             System.MONITORING,
-            {"value": value, "timestamp": timestamp},
+            {"fahrenheit": fahrenheit, "timestamp": timestamp},
         )
 
     @staticmethod
     def fromJson(message: HydroponicMessage):
-        return TemperatureDataReadingMessage(
-            message["data"]["temperature"], message["data"]["timestamp"]
+        return TemperatureReadingMessage(
+            message["data"]["fahrenheit"], message["data"]["timestamp"]
         )
 
 
@@ -311,7 +319,7 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
         height: int = 480,
     ):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = now()
         super().__init__(
             MessageType.PHOTO_CAPTURED,
             System.CAMERA,
