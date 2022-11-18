@@ -140,7 +140,7 @@ async def main():
             sleep(2)
             if pir.motion_detected:  # takes picture if detects motion
                 filename = current_date + "_motion_image_" + current_time
-                monitor_event = await camera_capture(current_date, "motion", filename)
+                monitor_event = await camera_capture(current_time, "motion", filename)
                 # await client.sendData(monitor_event)
                 await client.sendFile(filename + ".jpg", monitor_event)
                 cooldown = True
@@ -148,16 +148,20 @@ async def main():
                 await down()
                 sleep(2)
                 filename = current_date + "_time_image_" + current_time
-                monitor_event = await camera_capture(db_time, "periodic", filename)
+                monitor_event = await camera_capture(current_time, "periodic", filename)
                 # await client.sendData(monitor_event)
                 await client.sendFile(filename + ".jpg", monitor_event)
                 #checks for plant growth weekly (sunday)
-                if time.strftime("%w:%H:%M:%S",t) == "0:12:00:00":
+                if time.strftime("%w:%H:%M:%S",t) == "0:12:30:00":
                     plant1 = cv2.imread(filename +  ".jpg" )
                     plant2 = cv2.imread(pfile + ".jpg")
                     plantdifference = cv2.subtract(plant1, plant2)
                     cv2.imwrite(filename + "_growth.jpg" , plantdifference)
-                    await client.sendFile(filename + "_growth.jpg", monitor_event)
+                    data = {}
+                    data["time"] = current_time
+                    data["type"] = "growth"
+                    data["filename"] = filename + "_growth.jpg"
+                    await client.sendFile(filename + "_growth.jpg", data)
                     pfile = filename
                 cooldown = True
         if cooldown == True:  # adds a 5 minute cooldown for pictures

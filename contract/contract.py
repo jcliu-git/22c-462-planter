@@ -369,6 +369,8 @@ class PhotoCaptureMessage(FileMessage):
             filepath += "motion/"
         elif message.data["phototype"] == "periodic":
             filepath += "periodic/"
+        elif message.data ["phototype"] == "growth":
+            filepath += "growth/"
         filepath += message.data["filename"]
         return PhotoCaptureMessage(
             filepath,
