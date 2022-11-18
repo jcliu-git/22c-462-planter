@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from time import sleep
 import asyncio
+from typing import Optional
 import psycopg2
 import random
 import time
@@ -16,6 +17,90 @@ DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
 conn = psycopg2.connect(DATABASE_URL)
 conn.autocommit = True
 curr = conn.cursor()
+
+
+class HubState:
+    state: contract.IHubState
+
+    def __init__(self, state: Optional[contract.IHubState] = contract.DefaultHubState):
+        self.state = state
+
+    def setMoisture(self, moisture: contract.MoistureData):
+        self.state["dashboard"]["moisture"] = moisture
+
+    def getMoisture(self) -> contract.MoistureData:
+        return self.state["dashboard"]["moisture"]
+
+    def setLight(self, light: contract.LightData):
+        self.state["dashboard"]["light"] = light
+
+    def getLight(self) -> contract.LightData:
+        return self.state["dashboard"]["light"]
+
+    def setTemperature(self, temperature: contract.TemperatureData):
+        self.state["dashboard"]["temperature"] = temperature
+
+    def getTemperature(self) -> contract.TemperatureData:
+        return self.state["dashboard"]["temperature"]
+
+    def setWaterLevel(self, waterLevel: contract.WaterLevelData):
+        self.state["dashboard"]["waterLevel"] = waterLevel
+
+    def getWaterLevel(self) -> contract.WaterLevelData:
+        return self.state["dashboard"]["waterLevel"]
+
+    def addPhoto(self, photo: contract.PhotoCapture):
+        self.state["dashboard"]["photos"].append(photo)
+        while len(self.state["dashboard"]["photos"]) > 10:
+            self.state["dashboard"]["photos"].pop(0)
+
+    def getPhotos(self) -> list[contract.PhotoCapture]:
+        return self.state["dashboard"]["photos"]
+
+    def setPlanterEnabled(self, enabled: bool):
+        self.state["control"]["planterEnabled"] = enabled
+
+    def getPlanterEnabled(self) -> bool:
+        return self.state["control"]["planterEnabled"]
+
+    def setHydroponicEnabled(self, enabled: bool):
+        self.state["control"]["hydroponicEnabled"] = enabled
+
+    def getHydroponicEnabled(self) -> bool:
+        return self.state["control"]["hydroponicEnabled"]
+
+    def setDryThreshold(self, threshold: float):
+        self.state["control"]["dryThreshold"] = threshold
+
+    def getDryThreshold(self) -> float:
+        return self.state["control"]["dryThreshold"]
+
+    def setFlowTime(self, flowTime: float):
+        self.state["control"]["flowTime"] = flowTime
+
+    def getFlowTime(self) -> float:
+        return self.state["control"]["flowTime"]
+
+    def setResevoirHeight(self, height: float):
+        self.state["control"]["resevoirHeight"] = height
+
+    def getResevoirHeight(self) -> float:
+        return self.state["control"]["resevoirHeight"]
+
+    def setEmptyResevoirHeight(self, height: float):
+        self.state["control"]["emptyResevoirHeight"] = height
+
+    def getEmptyResevoirHeight(self) -> float:
+        return self.state["control"]["emptyResevoirHeight"]
+
+    def setFullResevoirHeight(self, height: float):
+        self.state["control"]["fullResevoirHeight"] = height
+
+    def getFullResevoirHeight(self) -> float:
+        return self.state["control"]["fullResevoirHeight"]
+
+
+state: contract.HubState = contract.HubState({})
 
 
 def insertDB(table: str, cols: str, data: str):
@@ -47,7 +132,7 @@ def insertMoistureLevel(message: contract.MoistureReadingMessage):
 
 def insertLight(message: contract.LightData):
     table = "light"
-    cols = "timestamp, value"
+    cols = "timestamp, luminosity"
     message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
     values = ",".join(
         str(x) for x in [message.data["timestamp"], message.data["value"]]
@@ -57,7 +142,7 @@ def insertLight(message: contract.LightData):
 
 def insertWaterLevel(message: contract.WaterLevelData):
     table = "water_level"
-    cols = "timestamp,value"
+    cols = "timestamp,distance"
     message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
     values = ",".join(
         str(x) for x in [message.data["timestamp"], message.data["value"]]
@@ -84,7 +169,7 @@ def insertPhoto(message: contract.PhotoCaptureMessage):
 
 def insertTemperature(message: contract.TemperatureData):
     table = "temperature"
-    cols = "timestamp, value"
+    cols = "timestamp, temperature"
     message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
     values = ",".join(
         str(x) for x in [message.data["timestamp"], message.data["value"]]
@@ -123,34 +208,14 @@ async def handle_messages(controlHub: ControlHub):
             #         pass
             if message.system == contract.System.MONITORING:
                 if message.type == contract.MessageType.TEMPERATURE:
-                    insertTemperature(message)
+                    # insertTemperature(message)
+                    print(message)
                 if message.type == contract.MessageType.LIGHT_READING:
-                    insertLight(message)
+                    # insertLight(message)
+                    print(message)
                 if message.type == contract.MessageType.WATER_LEVEL:
-                    insertWaterLevel(message)
-                if message.type == "data":
-                    print("inserting sensor data", message.data)
-                    insertMoistureLevel(
-                        contract.MoistureReadingMessage(
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                            message.data["moisture"],
-                        )
-                    )
-                    insertLight(contract.LightReadingMessage(message.data["light"]))
-                    insertWaterLevel(
-                        contract.WaterLevelReadingMessage(message.data["depth"])
-                    )
-                    insertTemperature(
-                        contract.TemperatureDataReadingMessage(
-                            message.data["temperature"]
-                        )
-                    )
+                    # insertWaterLevel(message)
+                    print(message)
 
             if message.system == contract.System.CAMERA:
                 if message.type == contract.MessageType.FILE_MESSAGE:

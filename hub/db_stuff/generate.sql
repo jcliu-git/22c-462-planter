@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS water_level
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),
     "timestamp" timestamp without time zone NOT NULL,
-    value double precision NOT NULL,
+    distance double precision NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS moisture_level
 CREATE TABLE IF NOT EXISTS temperature
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    value double precision NOT NULL,
+    temperature double precision NOT NULL,
     "timestamp" timestamp without time zone NOT NULL,
     PRIMARY KEY (id)
 );
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS photos
 CREATE TABLE IF NOT EXISTS light
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    value double precision NOT NULL,
+    luminosity double precision NOT NULL,
     "timestamp" timestamp without time zone NOT NULL,
     PRIMARY KEY (id)
 );

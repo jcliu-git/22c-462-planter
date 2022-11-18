@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedD
 
 
 def now():
-    return now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 NETWORK_PORT = 32132
@@ -140,7 +140,7 @@ class HydroponicData(TypedDict):
     moisture: int
 
 
-class IMoistureData(TypedDict):
+class MoistureData(TypedDict):
     sensor1: float
     sensor2: float
     sensor3: float
@@ -152,7 +152,7 @@ class IMoistureData(TypedDict):
     timestamp: Optional[datetime.datetime]
 
 
-class MoistureReadingMessage(Message[IMoistureData]):
+class MoistureReadingMessage(Message[MoistureData]):
     def __init__(
         self,
         sensor1: float,
@@ -184,7 +184,7 @@ class MoistureReadingMessage(Message[IMoistureData]):
         )
 
     @staticmethod
-    def fromJson(message: IMessage[IMoistureData]):
+    def fromJson(message: IMessage[MoistureData]):
         return MoistureReadingMessage(
             message["data"]["sensor1"],
             message["data"]["sensor2"],
@@ -345,3 +345,46 @@ class PhotoCaptureMessage(Message[PhotoCapture]):
             message.data["data"]["phototype"],
             message.data["data"]["timestamp"],
         )
+
+
+class IDashboardState(TypedDict):
+    light: LightData
+    temperature: TemperatureData
+    photos: list[PhotoCapture]
+    waterLevel: WaterLevelData
+    moisture: MoistureData
+
+
+class IControlState(TypedDict):
+    planterEnabled: bool
+    hydroponicEnabled: bool
+    dryThreshold: float
+    flowTime: float
+    resevoirHeight: float
+    emptyResevoirHeight: float
+    fullResevoirHeight: float
+
+
+class IHubState(TypedDict):
+    dashboard: IDashboardState
+    control: IControlState
+
+
+DefaultHubState: IHubState = {
+    "dashboard": {
+        "moisture": {"moisture": 0.0, "timestamp": now()},
+        "light": {"light": 0.0, "timestamp": now()},
+        "water": {"waterLevel": 0.0, "timestamp": now()},
+        "temperature": {"temperature": 0.0, "timestamp": now()},
+        "photos": {"photos": [], "timestamp": now()},
+    },
+    "control": {
+        "planterEnabled": False,
+        "hydroponicEnabled": False,
+        "dryThreshold": 0.0,
+        "flowTime": 0.0,
+        "resevoirHeight": 0.0,
+        "emptyResevoirHeight": 0.0,
+        "fullResevoirHeight": 0.0,
+    },
+}
