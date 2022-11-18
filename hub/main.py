@@ -9,6 +9,8 @@ import random
 import time
 import shutil
 
+import json
+
 sys.path.append("../")
 import contract.contract as contract
 from hub.network462 import ControlHub
@@ -183,6 +185,7 @@ async def handle_messages(controlHub: ControlHub):
     async for message in stream:
         # do something based on what message you get
         try:
+            # TODO: remove print statements below when everything's tested
             print(message)
             if message.system == contract.System.SUBSURFACE:
                 # testing for now
@@ -218,7 +221,7 @@ async def handle_messages(controlHub: ControlHub):
                     print(message)
 
             if message.system == contract.System.CAMERA:
-                if message.type == contract.MessageType.FILE_MESSAGE:
+                if message.type == contract.MessageType.PHOTO_CAPTURED:
                     """
                     message.data["data"]:
                     {
@@ -227,7 +230,7 @@ async def handle_messages(controlHub: ControlHub):
                         "filename": str
                     }
                     """
-                    filename = message.data["data"]["filename"]
+                    filename = message.data["filename"]
                     print("processing file: " + filename)
                     path = "../ui/public/"
                     # if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
@@ -239,7 +242,8 @@ async def handle_messages(controlHub: ControlHub):
                     shutil.move("temp/" + filename, path + filename)
                     photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
                     insertPhoto(photocaptureMessage)
-        except:
+        except Exception as err:
+            print(err)
             print("something broke")
 
 
