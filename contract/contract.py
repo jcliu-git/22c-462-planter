@@ -404,7 +404,10 @@ class IHubState(TypedDict):
 
 DefaultHubState: IHubState = {
     "dashboard": {
-        "moisture": {"moisture": 0.0, "timestamp": now()},
+        "moisture": {
+            "sensor1": 0,
+            "timestamp": now()
+        },
         "light": {"light": 0.0, "timestamp": now()},
         "water": {"waterLevel": 0.0, "timestamp": now()},
         "temperature": {"temperature": 0.0, "timestamp": now()},

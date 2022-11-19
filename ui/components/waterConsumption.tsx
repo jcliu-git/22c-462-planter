@@ -1,33 +1,47 @@
 import { useTheme } from "@mui/material";
 import React from "react";
+import { useSelector } from "react-redux";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { RootState } from "../models/store";
 import { NonSSRWrapper } from "../util/next";
-
-const data = [
-  {
-    name: "monday",
-    litres: 4000,
-  },
-  {
-    name: "tuesday",
-    litres: 6000,
-  },
-  {
-    name: "wednesday",
-    litres: 2000,
-  },
-  {
-    name: "thursday",
-    litres: 1000,
-  },
-  {
-    name: "friday",
-    litres: 500,
-  },
-];
+import useSWR from "swr";
 
 export function WaterConsumption(): JSX.Element {
   const theme = useTheme();
+  const state = useSelector(
+    (state: RootState) => state.dashboard.waterConsumptionByDay
+  );
+
+  const data = [
+    {
+      name: "6 days ago",
+      litres: state[0] || 0,
+    },
+    {
+      name: "5 days ago",
+      litres: state[1] || 0,
+    },
+    {
+      name: "4 days ago",
+      litres: state[2] || 0,
+    },
+    {
+      name: "3 days ago",
+      litres: state[3] || 0,
+    },
+    {
+      name: "2 days ago",
+      litres: state[4] || 0,
+    },
+    {
+      name: "1 days ago",
+      litres: state[5] || 0,
+    },
+    {
+      name: "today",
+      litres: state[6] || 0,
+    },
+  ];
 
   return (
     <BarChart width={730} height={250} data={data}>

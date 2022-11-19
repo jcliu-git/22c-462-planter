@@ -1,5 +1,4 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { range } from "lodash";
 import type { NextApiRequest, NextApiResponse } from "next";
 import database from "../../../models/database";
 

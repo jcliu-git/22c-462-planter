@@ -8,7 +8,8 @@ import {
   ITemperatureData,
   IWaterLevelData,
   LightData,
-  ServerState
+  WaterConsumptionByDay,
+  ServerState,
 } from "./store";
 
 const axios = Axios.create({
@@ -30,24 +31,28 @@ export namespace api {
   }
 
   export namespace dashboard {
-    
     export async function fetchLatest(): Promise<IDashboardState> {
       let data = DashboardState();
       await Promise.all([
-        axios<ILightData>("/api/light/latest").then(
-          (res) => (data.light = res.data)
-        ),
-        axios<IMoistureData>("/api/moisture/latest").then(
-          (res) => (data.moisture = res.data)
-        ),
-        axios<ITemperatureData>("/api/temperature/latest").then(
-          (res) => (data.temperature = res.data)
-        ),
-        axios<IWaterLevelData>("/api/waterLevel/latest").then(
-          (res) => (data.waterLevel = res.data)
-        ),
-        axios<IPhotoData[]>("/api/photos/latest").then(
-          (res) => (data.photos = res.data)
+        axios<ILightData>("/api/light/latest").then((res) => {
+          data.light = res.data;
+        }),
+        axios<IMoistureData>("/api/moisture/latest").then((res) => {
+          data.moisture = res.data;
+        }),
+        axios<ITemperatureData>("/api/temperature/latest").then((res) => {
+          data.temperature = res.data;
+        }),
+        axios<IWaterLevelData>("/api/waterLevel/latest").then((res) => {
+          data.waterLevel = res.data;
+        }),
+        axios<IPhotoData[]>("/api/photos/latest").then((res) => {
+          data.photos = res.data;
+        }),
+        axios<WaterConsumptionByDay>("/api/waterLevel/sevenDays").then(
+          (res) => {
+            data.waterConsumptionByDay = res.data;
+          }
         ),
       ]);
 
