@@ -11,7 +11,9 @@ let photoDataSubscription: Subscription | null = null;
 
 const Slideshow = () => {
   const theme = useTheme<Theme>();
-  const photoData = useSelector((state: RootState) => state.dashboard.photos);
+  const photoData = useSelector(
+    (state: RootState) => state.hub.dashboard.photos
+  );
   const dispatch = useDispatch<Dispatch>();
 
   if (!photoData.length) return null;

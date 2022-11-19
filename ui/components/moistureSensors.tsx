@@ -10,7 +10,9 @@ import { useSelector, useDispatch } from "react-redux";
 export function MoistureSensors(): JSX.Element {
   const theme = useTheme<Theme>();
 
-  const moisture = useSelector((state: RootState) => state.dashboard.moisture);
+  const moisture = useSelector(
+    (state: RootState) => state.hub.dashboard.moisture
+  );
   const dispatch = useDispatch<Dispatch>();
 
   const max = 500;

@@ -26,8 +26,6 @@ export default async function handler(
       return new Date(row.timestamp).getDay();
     });
 
-    console.log(rowsByDate);
-
     let data = Object.keys(rowsByDate).reduce((acc, key) => {
       let rows = rowsByDate[key];
       let consumption = 0;

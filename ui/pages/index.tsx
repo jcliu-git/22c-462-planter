@@ -1,23 +1,25 @@
 import Head from "next/head";
 import MoistureSensors from "../components/moistureSensors";
 import Slideshow from "../components/slideshow";
-import Slider from "../components/slider";
 import { WaterConsumption } from "../components/waterConsumption";
 import { WaterLevel } from "../components/waterLevel";
 import styles from "../styles/Home.module.css";
-import { Grid } from "@mui/material";
-import React from "react";
+import { Box, CustomTheme, Grid, useTheme } from "@mui/material";
+import React, { useEffect } from "react";
 import { TemperatureSensor } from "../components/temperature";
 import { LightSensor } from "../components/light";
-import useSWR from "swr";
 import { useDispatch } from "react-redux";
-import { Dispatch } from "../models/store";
+import { Dispatch, RefetchRoutine } from "../models/store";
 
 export default function Dashboard() {
   const dispatch = useDispatch<Dispatch>();
-  useSWR(dispatch.dashboard.fetchLatest, {
-    refreshInterval: 5000,
-  });
+  const theme = useTheme<CustomTheme>();
+
+  useEffect(() => {
+    dispatch.refetch.subscribeHub(5000);
+    dispatch.refetch.start();
+  }, []);
+
   return (
     <div className={styles.container}>
       <Head>
@@ -25,41 +27,56 @@ export default function Dashboard() {
         <meta name="description" content="Mobile Garden" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Grid container>
-        <Grid item xs={12} sm={12} md={6}>
-          <Grid container direction="column">
-            <Grid item xl={12}>
+      <Box
+        sx={{
+          padding: theme.spacing(3),
+        }}
+      >
+        <Grid container spacing={theme.spacing(3)}>
+          <Grid
+            item
+            container
+            direction="column"
+            spacing={theme.spacing(3)}
+            alignItems="center"
+            sm={12}
+            md={2}
+          >
+            <Grid item>
               <TemperatureSensor />
               <LightSensor />
             </Grid>
-            <Grid item xl={12}>
+            <Grid item>
               <WaterLevel />
             </Grid>
-            <Grid item xl={12}>
-              <p>Moisture Level Controls</p>
-              <Slider />
-            </Grid>
-            <Grid item xl={12}>
+            <Grid item>
               <p>Moisture Level</p>
               <MoistureSensors />
             </Grid>
           </Grid>
+          <Grid
+            item
+            container
+            direction="column"
+            sm={12}
+            md={10}
+            spacing={theme.spacing(3)}
+            alignItems="center"
+          >
+            <Grid item>
+              <Slideshow />
+            </Grid>
+            <Grid
+              item
+              sx={{
+                overflow: "hidden",
+              }}
+            >
+              {/* <WaterConsumption /> */}
+            </Grid>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={12} md={6}>
-          <Grid container direction="column"></Grid>
-          <Grid item xl={12}>
-            <h1 className={styles.hello}>Mobile Garden</h1>
-          </Grid>
-          <Grid item xl={12}>
-            <p>Plant Visitors</p>
-            <Slideshow />
-          </Grid>
-          <Grid item xl={12}>
-            <p>Daily Water Consumption</p>
-            <WaterConsumption />
-          </Grid>
-        </Grid>
-      </Grid>
+      </Box>
     </div>
   );
 }

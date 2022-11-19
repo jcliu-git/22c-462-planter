@@ -14,20 +14,23 @@ import { Box } from "@mui/system";
 import { useDispatch, useSelector } from "react-redux";
 import { api } from "../models/api";
 import { Dispatch, RootState } from "../models/store";
-import useSWR from "swr";
+import React, { useEffect } from "react";
 
 export default function ControlPanel() {
   const theme = useTheme<CustomTheme>();
-  const state = useSelector((state: RootState) => state.control);
-  const { waterLevel } = useSelector((state: RootState) => state.dashboard);
+  const hub = useSelector((state: RootState) => state.hub);
+
+  useEffect(() => {
+    dispatch.refetch.subscribeHub(5000);
+    dispatch.refetch.start();
+  }, []);
+
   const dispatch = useDispatch<Dispatch>();
+  let dryThreshold = hub.control.dryThreshold;
+  let flowTime = hub.control.flowTime;
+  const [_flowTime, setFlowTime] = React.useState(flowTime);
+  const [_dryThreshold, setDryThreshold] = React.useState(dryThreshold);
 
-  useSWR(api.dashboard.waterLevel, {
-    refreshInterval: state.calibrating ? 200 : 0,
-  });
-
-  let dryThreshold = state.dryThreshold;
-  let flowTime = state.flowTime;
   return (
     <Box sx={{ padding: theme.spacing(3) }}>
       <Grid container spacing={3}>
@@ -42,7 +45,7 @@ export default function ControlPanel() {
           <Grid item container xs={12} spacing={theme.spacing(3)}>
             <Grid item>
               <Card
-                onClick={() => dispatch.control.togglePlanter()}
+                onClick={() => dispatch.hub.togglePlanter()}
                 sx={{
                   cursor: "pointer",
                   width: 200,
@@ -50,10 +53,10 @@ export default function ControlPanel() {
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  background: state.planterEnabled
+                  background: hub.control.planterEnabled
                     ? theme.palette.success.main
                     : theme.palette.error.main,
-                  color: state.planterEnabled
+                  color: hub.control.planterEnabled
                     ? theme.palette.success.contrastText
                     : theme.palette.error.contrastText,
                 }}
@@ -70,7 +73,7 @@ export default function ControlPanel() {
             </Grid>
             <Grid item>
               <Card
-                onClick={() => dispatch.control.toggleHydroponic()}
+                onClick={() => dispatch.hub.toggleHydroponic()}
                 sx={{
                   cursor: "pointer",
                   width: 200,
@@ -78,10 +81,10 @@ export default function ControlPanel() {
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  background: state.hydroponicEnabled
+                  background: hub.control.hydroponicEnabled
                     ? theme.palette.success.main
                     : theme.palette.error.main,
-                  color: state.hydroponicEnabled
+                  color: hub.control.hydroponicEnabled
                     ? theme.palette.success.contrastText
                     : theme.palette.error.contrastText,
                 }}
@@ -116,14 +119,21 @@ export default function ControlPanel() {
                         min={0}
                         max={100}
                         defaultValue={30}
-                        value={dryThreshold}
+                        value={_dryThreshold}
                         valueLabelDisplay="auto"
                         valueLabelFormat={(value) => `${value}%`}
+                        onChangeCommitted={(_, value) => {
+                          if (value instanceof Array) {
+                            dispatch.hub.setDryThreshold(value[0]);
+                          } else {
+                            dispatch.hub.setDryThreshold(value);
+                          }
+                        }}
                         onChange={(_, value) => {
                           if (value instanceof Array) {
-                            dispatch.control.setDryThreshold(value[0]);
+                            setDryThreshold(value[0]);
                           } else {
-                            dispatch.control.setDryThreshold(value);
+                            setDryThreshold(value);
                           }
                         }}
                       />
@@ -136,14 +146,21 @@ export default function ControlPanel() {
                         min={0}
                         max={100}
                         defaultValue={30}
-                        value={flowTime}
+                        value={_flowTime}
                         valueLabelDisplay="auto"
                         valueLabelFormat={(value) => `${value} seconds`}
                         onChange={(_, value) => {
                           if (value instanceof Array) {
-                            dispatch.control.setFlowTime(value[0]);
+                            setFlowTime(value[0]);
                           } else {
-                            dispatch.control.setFlowTime(value);
+                            setFlowTime(value);
+                          }
+                        }}
+                        onChangeCommitted={(_, value) => {
+                          if (value instanceof Array) {
+                            dispatch.hub.setFlowTime(value[0]);
+                          } else {
+                            dispatch.hub.setFlowTime(value);
                           }
                         }}
                       />
@@ -178,9 +195,16 @@ export default function ControlPanel() {
               <Grid container spacing={theme.spacing(3)}>
                 <Grid item xs={6}>
                   <Card
-                    onClick={() =>
-                      dispatch.control.toggleCalibration(waterLevel.distance)
-                    }
+                    onClick={() => {
+                      if (!hub.control.calibrating) {
+                        dispatch.refetch.subscribeHub(1000);
+                      } else {
+                        dispatch.refetch.subscribeHub(5000);
+                      }
+                      dispatch.hub.toggleCalibration(
+                        hub.dashboard.waterLevel.distance
+                      );
+                    }}
                     sx={{
                       cursor: "pointer",
                       width: 200,
@@ -188,10 +212,10 @@ export default function ControlPanel() {
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
-                      background: state.calibrating
+                      background: hub.control.calibrating
                         ? theme.palette.success.main
                         : theme.palette.info.main,
-                      color: state.calibrating
+                      color: hub.control.calibrating
                         ? theme.palette.success.contrastText
                         : theme.palette.info.contrastText,
                     }}
@@ -218,12 +242,12 @@ export default function ControlPanel() {
                     }}
                     elevation={1}
                   >
-                    <Typography>{`Distance: ${waterLevel.distance} cm`}</Typography>
+                    <Typography>{`Distance: ${hub.dashboard.waterLevel.distance} cm`}</Typography>
                   </Card>
                 </Grid>
               </Grid>
               <Typography variant="body1" sx={{ textAlign: "center" }}>
-                {`The resevoir height is ${state.resevoirHeight} cm`}
+                {`The resevoir height is ${hub.control.resevoirHeight} cm`}
               </Typography>
             </Stack>
           </Card>

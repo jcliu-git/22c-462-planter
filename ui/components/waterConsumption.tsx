@@ -9,7 +9,7 @@ import useSWR from "swr";
 export function WaterConsumption(): JSX.Element {
   const theme = useTheme();
   const state = useSelector(
-    (state: RootState) => state.dashboard.waterConsumptionByDay
+    (state: RootState) => state.hub.dashboard.waterConsumptionByDay
   );
 
   const data = [
@@ -44,7 +44,7 @@ export function WaterConsumption(): JSX.Element {
   ];
 
   return (
-    <BarChart width={730} height={250} data={data}>
+    <BarChart width={300} height={250} data={data}>
       <CartesianGrid strokeDasharray="3 3" />
       <XAxis dataKey="name" color="red" label={{ fill: "white" }} />
       <Bar dataKey="litres" fill="#8884d8" />

@@ -7,9 +7,9 @@ export function WaterLevel() {
   const theme = useTheme<CustomTheme>();
 
   const waterLevelState = useSelector(
-    (state: RootState) => state.dashboard.waterLevel
+    (state: RootState) => state.hub.dashboard.waterLevel
   );
-  const controlState = useSelector((state: RootState) => state.control);
+  const controlState = useSelector((state: RootState) => state.hub.control);
   const dispatch = useDispatch<Dispatch>();
 
   return (
