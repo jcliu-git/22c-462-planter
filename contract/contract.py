@@ -429,8 +429,8 @@ class IHubState(TypedDict):
 DefaultHubState: IHubState = {
     "dashboard": {
         "moisture": {"sensor1": 0, "timestamp": now()},
-        "light": {"light": 0.0, "timestamp": now()},
-        "waterLevel": {"waterLevel": 0.0, "timestamp": now()},
+        "light": {"luminosity": 0.0, "timestamp": now()},
+        "waterLevel": {"distance": 0.0, "timestamp": now()},
         "temperature": {"temperature": 0.0, "timestamp": now()},
         "photos": {"photos": [], "timestamp": now()},
     },
@@ -442,5 +442,6 @@ DefaultHubState: IHubState = {
         "resevoirHeight": 245,
         "emptyResevoirHeight": 250,
         "fullResevoirHeight": 5,
+        "calibrating": False,
     },
 }

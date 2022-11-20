@@ -10,6 +10,7 @@ import { TemperatureSensor } from "../components/temperature";
 import { LightSensor } from "../components/light";
 import { useDispatch } from "react-redux";
 import { Dispatch, RefetchRoutine } from "../models/store";
+import { TempAndLight } from "../components/tempAndLight";
 
 export default function Dashboard() {
   const dispatch = useDispatch<Dispatch>();
@@ -27,11 +28,7 @@ export default function Dashboard() {
         <meta name="description" content="Mobile Garden" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Box
-        sx={{
-          padding: theme.spacing(3),
-        }}
-      >
+      <Box sx={{ padding: theme.spacing(3) }}>
         <Grid container spacing={theme.spacing(3)}>
           <Grid
             item
@@ -40,39 +37,37 @@ export default function Dashboard() {
             spacing={theme.spacing(3)}
             alignItems="center"
             sm={12}
-            md={2}
+            md={6}
           >
-            <Grid item>
-              <TemperatureSensor />
-              <LightSensor />
+            <Grid
+              item
+              sx={{ display: "block", width: "100%", height: "188px" }}
+            >
+              <TempAndLight />
             </Grid>
-            <Grid item>
-              <WaterLevel />
-            </Grid>
-            <Grid item>
-              <p>Moisture Level</p>
-              <MoistureSensors />
-            </Grid>
+
+            {/* <Grid
+              item
+              sx={{ display: "block", width: "100%", overflow: "hidden" }}
+            >
+              <WaterConsumption />
+            </Grid> */}
           </Grid>
           <Grid
             item
             container
             direction="column"
             sm={12}
-            md={10}
+            md={6}
             spacing={theme.spacing(3)}
             alignItems="center"
           >
-            <Grid item>
-              <Slideshow />
+            <Grid item sx={{ display: "block", width: "100%" }}>
+              <WaterLevel />
             </Grid>
-            <Grid
-              item
-              sx={{
-                overflow: "hidden",
-              }}
-            >
-              {/* <WaterConsumption /> */}
+
+            <Grid item sx={{ display: "block", width: "100%" }}>
+              <MoistureSensors />
             </Grid>
           </Grid>
         </Grid>

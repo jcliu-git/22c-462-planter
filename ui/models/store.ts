@@ -344,15 +344,26 @@ export const hubState = createModel<RootModel>()({
     toggleCalibration(state, currentHeight: number) {
       // when calibration starts, set the empty resevoir height
 
+      let empty = state.control.calibrating
+        ? state.control.emptyResevoirHeight
+        : currentHeight;
+      let full = state.control.calibrating
+        ? currentHeight
+        : state.control.fullResevoirHeight;
+
+      let height = state.control.calibrating
+        ? empty - full
+        : state.control.resevoirHeight;
+
       let newState = {
         ...state,
-        emptyResevoirHeight: state.control.calibrating
-          ? state.control.emptyResevoirHeight
-          : currentHeight,
-        fullResevoirHeight: state.control.calibrating
-          ? currentHeight
-          : state.control.fullResevoirHeight,
-        calibrating: !state.control.calibrating,
+        control: {
+          ...state.control,
+          emptyResevoirHeight: empty,
+          fullResevoirHeight: full,
+          resevoirHeight: height,
+          calibrating: !state.control.calibrating,
+        },
       };
       api.hub.update(newState);
       return newState;

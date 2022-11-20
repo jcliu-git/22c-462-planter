@@ -1,4 +1,4 @@
-import { Grid, Theme, useTheme } from "@mui/material";
+import { Card, Grid, Theme, Typography, useTheme } from "@mui/material";
 import { Box } from "@mui/system";
 import { range } from "lodash";
 import React from "react";
@@ -40,26 +40,74 @@ export function MoistureSensors(): JSX.Element {
     sensor8,
   ];
   return (
-    <Box sx={{ display: "flex", width: "350px", flexFlow: "row wrap" }}>
-      {range(8).map((index) => (
-        // </Grid>
-        <Box
-          key={index}
-          sx={{
-            padding: theme.spacing(3),
-          }}
-        >
+    <Card
+      sx={{
+        padding: theme.spacing(3),
+        display: "block",
+        width: "100%",
+      }}
+    >
+      <Typography variant="h6" sx={{ marginBottom: theme.spacing(1) }}>
+        Moisture Sensor Readings
+      </Typography>
+      <Grid container spacing={1}>
+        <Grid item xs={12}>
           <Box
             sx={{
-              borderRadius: "100%",
-              width: "32px",
-              height: "32px",
-              backgroundColor: calcColor(min, max, sensors[index]),
+              display: "flex",
+              flexFlow: "row wrap",
+              justifyContent: "space-between",
             }}
-          ></Box>
-        </Box>
-      ))}
-    </Box>
+          >
+            {range(4).map((index) => (
+              <Box
+                key={index}
+                sx={{
+                  padding: theme.spacing(3),
+                }}
+              >
+                <Box
+                  sx={{
+                    borderRadius: "100%",
+                    width: "32px",
+                    height: "32px",
+                    backgroundColor: calcColor(min, max, sensors[index]),
+                  }}
+                ></Box>
+              </Box>
+            ))}
+          </Box>
+        </Grid>
+        <Grid item xs={12}>
+          <Box
+            sx={{
+              display: "flex",
+              flexFlow: "row wrap",
+              justifyContent: "space-between",
+            }}
+          >
+            {range(4, 8).map((index) => (
+              // </Grid>
+              <Box
+                key={index}
+                sx={{
+                  padding: theme.spacing(3),
+                }}
+              >
+                <Box
+                  sx={{
+                    borderRadius: "100%",
+                    width: "32px",
+                    height: "32px",
+                    backgroundColor: calcColor(min, max, sensors[index]),
+                  }}
+                ></Box>
+              </Box>
+            ))}
+          </Box>
+        </Grid>
+      </Grid>
+    </Card>
   );
 }
 

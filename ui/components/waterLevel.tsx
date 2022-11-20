@@ -1,4 +1,4 @@
-import { Box, CustomTheme, Paper, useTheme } from "@mui/material";
+import { Box, CustomTheme, Paper, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch, RootState, store } from "../models/store";
@@ -15,18 +15,18 @@ export function WaterLevel() {
   return (
     <Paper
       sx={{
-        display: "inline-block",
+        display: "block",
         padding: theme.spacing(3),
       }}
     >
+      <Typography variant="h6" sx={{ marginBottom: theme.spacing(1) }}>
+        Resevoir Water Level
+      </Typography>
       <Box
         id="container"
         sx={{
-          width: "200px",
-          height: "400px",
-          margin: theme.spacing(3),
+          height: "100px",
           border: "3px solid black",
-          borderTop: "none",
           background: `rgba(0,0,0, 0.5)`,
           display: "flex",
           flexDirection: "column",
@@ -36,9 +36,11 @@ export function WaterLevel() {
         <Box
           id="water"
           sx={{
-            width: "100%",
-            height: `${
-              (1 - waterLevelState.distance / controlState.resevoirHeight) * 100
+            height: "100%",
+            width: `${
+              ((controlState.emptyResevoirHeight - waterLevelState.distance) /
+                controlState.resevoirHeight) *
+              100
             }%`,
             background: theme.palette.secondary.main,
           }}

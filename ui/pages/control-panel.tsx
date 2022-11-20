@@ -178,19 +178,10 @@ export default function ControlPanel() {
               <Typography variant="h5" sx={{ textAlign: "center" }}>
                 Calibrate Water Level
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{ textAlign: "center", lineHeight: "12px" }}
-              >
+              <Typography variant="body1" sx={{ textAlign: "center" }}>
                 Empty the water tank then click the start button to begin
-                calibrating.
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ textAlign: "center", lineHeight: "12px" }}
-              >
-                Once the resevoir is full click the stop button to finish
-                calibrating.
+                calibrating. Once the resevoir is full click the stop button to
+                finish calibrating.
               </Typography>
               <Grid container spacing={theme.spacing(3)}>
                 <Grid item xs={6}>
@@ -231,7 +222,7 @@ export default function ControlPanel() {
                   </Card>
                 </Grid>
                 <Grid item xs={6}>
-                  <Card
+                  <Box
                     sx={{
                       cursor: "pointer",
                       width: 200,
@@ -240,15 +231,16 @@ export default function ControlPanel() {
                       justifyContent: "center",
                       alignItems: "center",
                     }}
-                    elevation={1}
                   >
-                    <Typography>{`Distance: ${hub.dashboard.waterLevel.distance} cm`}</Typography>
-                  </Card>
+                    <Box>
+                      <Typography>{`Distance: ${hub.dashboard.waterLevel.distance} cm`}</Typography>
+                      <Typography variant="body1" sx={{ textAlign: "center" }}>
+                        {`Height: ${hub.control.resevoirHeight} cm`}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Grid>
               </Grid>
-              <Typography variant="body1" sx={{ textAlign: "center" }}>
-                {`The resevoir height is ${hub.control.resevoirHeight} cm`}
-              </Typography>
             </Stack>
           </Card>
         </Grid>
