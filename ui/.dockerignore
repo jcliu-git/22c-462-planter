@@ -35,6 +35,3 @@ next-env.d.ts
 
 #git
 .gitignore
-
-#docker
-Dockerfile
