@@ -9,9 +9,10 @@ from Sensor_array import *
 
 async def main():
     client = MonitoringClient(
-        contract.System.MONITORING, contract.NETWORK_HOST, contract.NETWORK_PORT
+        contract.System.MONITORING, '192.168.3.143', contract.NETWORK_PORT
     )
     await client.connect()
+    print('connected')
     try:
         while True:
             try:
@@ -23,9 +24,12 @@ async def main():
             except Exception as e:
                 print(e)
 
-            time.sleep(3)
+            await asyncio.sleep(3)
     finally:
         GPIO.cleanup()
 
 
 asyncio.run(main())
+
+
+
