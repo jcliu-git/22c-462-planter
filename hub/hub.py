@@ -11,11 +11,15 @@ from flask import Flask, request
 sys.path.append("../")
 import contract.contract as contract
 from network462 import ControlHub
+import arduino.arduinoSystemClient as arduino
 
 DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
 conn = psycopg2.connect(DATABASE_URL)
 conn.autocommit = True
 curr = conn.cursor()
+
+
+lock = threading.Lock()
 
 
 class HubState:
@@ -230,9 +234,22 @@ async def main():
     # create non-blocking concurrent task
     asyncio.create_task(handle_messages(controlHub))
 
-    # control hub monitoring, can be crated as another task
     while True:
         await asyncio.sleep(2)
+        # lock.acquire()
+        # moisture_readings = arduino.getSensorValues()
+
+        # state.data["dashboard"]["moisture"] = {
+        #     "sensor1": moisture_readings[0],
+        #     "sensor2": moisture_readings[1],
+        #     "sensor3": moisture_readings[2],
+        #     "sensor4": moisture_readings[3],
+        #     "sensor5": moisture_readings[4],
+        #     "sensor6": moisture_readings[5],
+        #     "sensor7": moisture_readings[6],
+        #     "sensor8": moisture_readings[7],
+        # }
+        # lock.release()
 
 
 app = Flask(__name__)
@@ -247,12 +264,51 @@ def fetch():
 @app.route("/update", methods=["POST"])
 def update():
     print(f"update request: {request.json}")
-    message = request.get_json()
-    state.data = message
-    return message
+    # newState: contract.IHubState = request.get_json()
+    try:
+        newState: contract.IHubState = request.json
 
+        lock.acquire()
 
-print(state.data)
+        # if (
+        #     newState["control"]["planterEnabled"]
+        #     != state.data["control"]["planterEnabled"]
+        # ):
+        #     arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0)
+
+        # if (
+        #     newState["control"]["hydroponicEnabled"]
+        #     != state.data["control"]["hydroponicEnabled"]
+        # ):
+        #     arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0)
+
+        # if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
+        #     arduino.setDryThreshold(newState["control"]["dryThreshold"])
+
+        # if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
+        #     arduino.setFlowTime(newState["control"]["flowTime"])
+
+        # if the water level is below 10% force pumps to be disabled
+        if (
+            (
+                newState["control"]["emptyResevoirHeight"]
+                - newState["dashboard"]["waterLevel"]["distance"]
+            )
+            / newState["control"]["resevoirHeight"]
+        ) < 0.1:
+            # arduino.setPlanterPumps(0)
+            newState["control"]["planterEnabled"] = False
+
+        lock.release()
+
+        state.data = newState
+
+        return newState
+
+    except Exception as e:
+        print(e)
+        return {"Error": True}
+
 
 serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
 serverThread.start()
