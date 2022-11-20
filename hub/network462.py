@@ -180,7 +180,7 @@ class Client(object):
 
     async def _sendData(self, data):
         """Generic data function, shouldn't be used with contracts
-        
+
         Args:
             data (any): any json serializable datatype
         """
@@ -299,7 +299,9 @@ class Client(object):
 
     async def _sendFileContract(self, source_path, contract):
         thread = Thread(
-            target=asyncio.run, args=(self._send_file_contract(source_path, contract),), daemon=True
+            target=asyncio.run,
+            args=(self._send_file_contract(source_path, contract),),
+            daemon=True,
         )
         thread.start()
 

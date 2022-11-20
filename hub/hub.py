@@ -7,6 +7,7 @@ import shutil
 import json
 import threading
 from flask import Flask, request
+from flask_cors import CORS
 
 sys.path.append("../")
 import contract.contract as contract
@@ -46,7 +47,7 @@ rows = {
         "timestamp",
     ],
     "photos": ["id", "timestamp", "filepath", "width", "height"],
-    "temperature": ["id", "temperature", "timestamp"],
+    "temperature": ["id", "fahrenheit", "timestamp"],
     "water_level": ["id", "timestamp", "distance"],
 }
 
@@ -181,6 +182,7 @@ async def handle_messages(controlHub: ControlHub):
     stream = controlHub.stream()
     async for message in stream:
         # do something based on what message you get
+        print(message)
         try:
             # TODO: remove print statements below when everything's tested
             # print(message)
@@ -188,6 +190,7 @@ async def handle_messages(controlHub: ControlHub):
                 if message.type == contract.MessageType.TEMPERATURE:
                     # insertTemperature(message)
                     state.data["dashboard"]["temperature"] = message.data
+                    await websocket.send(json.dumps(state))
                     # print(message)
                 if message.type == contract.MessageType.LIGHT_READING:
                     # insertLight(message)
@@ -229,6 +232,17 @@ async def handle_messages(controlHub: ControlHub):
             print("something broke")
 
 
+# async def websocket_handler(_socket):
+#     websocket = _socket
+#     while True:
+#         try:
+#             print("waiting for message")
+#             async for message in _socket:
+#                 print(message)
+#         except websockets.exceptions.ConnectionClosed:
+#             print("Connection closed")
+
+
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
     await controlHub.startServer()
@@ -257,6 +271,7 @@ async def main():
 
 
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/fetch", methods=["GET"])
@@ -267,7 +282,7 @@ def fetch():
 
 @app.route("/update", methods=["POST"])
 def update():
-    print(f"update request: {request.json}")
+    # print(f"update request: {request.json}")
     # newState: contract.IHubState = request.get_json()
     try:
         newState: contract.IHubState = request.json
