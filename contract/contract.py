@@ -428,11 +428,13 @@ class IHubState(TypedDict):
 
 DefaultHubState: IHubState = {
     "dashboard": {
-        "moisture": {"sensor1": 0, "timestamp": now()},
-        "light": {"luminosity": 0.0, "timestamp": now()},
-        "waterLevel": {"distance": 0.0, "timestamp": now()},
-        "temperature": {"temperature": 0.0, "timestamp": now()},
-        "photos": {"photos": [], "timestamp": now()},
+
+        "moisture": {"sensor1": 20, "sensor2": 101,"sensor3": 229,"sensor4": 488,"sensor5": 2928,"sensor6": 72,"sensor7": 289, "sensor8": 209, "timestamp": now()},
+        "light": {"luminosity": 54016, "timestamp": now()},
+        "waterLevel": {"distance": 20.3, "timestamp": now()},
+        "temperature": {"fahrenheit": 65.0005, "timestamp": now()},
+        "photos": [],
+        "waterConsumptionByDay": {}
     },
     "control": {
         "planterEnabled": True,

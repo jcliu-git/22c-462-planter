@@ -13,10 +13,10 @@ import contract.contract as contract
 from network462 import ControlHub
 import arduino.arduinoSystemClient as arduino
 
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
-conn = psycopg2.connect(DATABASE_URL)
-conn.autocommit = True
-curr = conn.cursor()
+# DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
+# conn = psycopg2.connect(DATABASE_URL)
+# conn.autocommit = True
+# curr = conn.cursor()
 
 
 lock = threading.Lock()
@@ -91,10 +91,12 @@ def fetchDashboardState():
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 
+        return False
+
 
 state = HubState(
     {
-        "dashboard": fetchDashboardState(),
+        "dashboard": fetchDashboardState() or contract.DefaultHubState["dashboard"],
         "control": contract.DefaultHubState["control"],
     }
 )
@@ -235,21 +237,23 @@ async def main():
     asyncio.create_task(handle_messages(controlHub))
 
     while True:
-        await asyncio.sleep(2)
-        # lock.acquire()
-        # moisture_readings = arduino.getSensorValues()
+        await asyncio.sleep(10)
+        
+        lock.acquire()
+        moisture_readings = arduino.getSensorValues()
+        print(moisture_readings)
 
-        # state.data["dashboard"]["moisture"] = {
-        #     "sensor1": moisture_readings[0],
-        #     "sensor2": moisture_readings[1],
-        #     "sensor3": moisture_readings[2],
-        #     "sensor4": moisture_readings[3],
-        #     "sensor5": moisture_readings[4],
-        #     "sensor6": moisture_readings[5],
-        #     "sensor7": moisture_readings[6],
-        #     "sensor8": moisture_readings[7],
-        # }
-        # lock.release()
+        state.data["dashboard"]["moisture"] = {
+            "sensor1": moisture_readings[0],
+            "sensor2": moisture_readings[1],
+            "sensor3": moisture_readings[2],
+            "sensor4": moisture_readings[3],
+            "sensor5": moisture_readings[4],
+            "sensor6": moisture_readings[5],
+            "sensor7": moisture_readings[6],
+            "sensor8": moisture_readings[7],
+        }
+        lock.release()
 
 
 app = Flask(__name__)
@@ -270,25 +274,25 @@ def update():
 
         lock.acquire()
 
-        # if (
-        #     newState["control"]["planterEnabled"]
-        #     != state.data["control"]["planterEnabled"]
-        # ):
-        #     arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0)
+        if (
+            newState["control"]["planterEnabled"]
+            != state.data["control"]["planterEnabled"]
+        ):
+            assert arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0) == True
 
-        # if (
-        #     newState["control"]["hydroponicEnabled"]
-        #     != state.data["control"]["hydroponicEnabled"]
-        # ):
-        #     arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0)
+        if (
+            newState["control"]["hydroponicEnabled"]
+            != state.data["control"]["hydroponicEnabled"]
+        ):
+            assert arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0) == True
 
-        # if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
-        #     arduino.setDryThreshold(newState["control"]["dryThreshold"])
+        if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
+            assert arduino.setDryThreshold(newState["control"]["dryThreshold"]) == True
 
-        # if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
-        #     arduino.setFlowTime(newState["control"]["flowTime"])
+        if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
+            assert arduino.setFlowTime(newState["control"]["flowTime"]) == True
 
-        # if the water level is below 10% force pumps to be disabled
+        #if the water level is below 10% force pumps to be disabled
         if (
             (
                 newState["control"]["emptyResevoirHeight"]
@@ -296,7 +300,7 @@ def update():
             )
             / newState["control"]["resevoirHeight"]
         ) < 0.1:
-            # arduino.setPlanterPumps(0)
+            assert arduino.setPlanterPumps(0) == True
             newState["control"]["planterEnabled"] = False
 
         lock.release()
