@@ -62,4 +62,3 @@ def getTemperatureData():
 def getLightData():
     volt = photoChan.value
     return volt
-
