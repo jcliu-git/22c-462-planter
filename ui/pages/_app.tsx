@@ -1,12 +1,16 @@
 import "../styles/globals.css";
 import { CssBaseline, NoSsr, ThemeProvider } from "@mui/material";
 import theme from "../styles/theme";
-import { Provider } from "react-redux";
-import { store } from "../models/store";
+import { Provider, useDispatch } from "react-redux";
+import { Dispatch, store } from "../models/store";
 import { Navigation } from "../components/navigation";
 import { Masthead } from "../components/masthead";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 export default function App({ Component, pageProps }: any) {
+  const router = useRouter();
+
   return (
     <NoSsr>
       <ThemeProvider theme={theme}>

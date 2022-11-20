@@ -1,108 +1,105 @@
 import sys
-import os
 from pathlib import Path
 from time import sleep
 import asyncio
-from typing import Optional
 import psycopg2
-import random
-import time
 import shutil
 import json
 import threading
 from flask import Flask, request
+from flask_cors import CORS
+
 sys.path.append("../")
 import hub.contract.contract as contract
-from hub.network462 import ControlHub
+from network462 import ControlHub
+import arduino.arduinoSystemClient as arduino
 
 DATABASE_URL = "postgresql://postgres:postgres@db:5432/garden" #change from localhost to db to connect to database in container
 conn = psycopg2.connect(DATABASE_URL)
 conn.autocommit = True
 curr = conn.cursor()
 
+
+lock = threading.Lock()
+
+
 class HubState:
     data: contract.IHubState
 
-    def __init__(self, state: Optional[contract.IHubState] = contract.DefaultHubState):
-        self.data = state
-
-    def setMoisture(self, moisture: contract.MoistureData):
-        self.data["dashboard"]["moisture"] = moisture
-
-    def getMoisture(self) -> contract.MoistureData:
-        return self.data["dashboard"]["moisture"]
-
-    def setLight(self, light: contract.LightData):
-        self.data["dashboard"]["light"] = light
-
-    def getLight(self) -> contract.LightData:
-        return self.data["dashboard"]["light"]
-
-    def setTemperature(self, temperature: contract.TemperatureData):
-        self.data["dashboard"]["temperature"] = temperature
-
-    def getTemperature(self) -> contract.TemperatureData:
-        return self.data["dashboard"]["temperature"]
-
-    def setWaterLevel(self, waterLevel: contract.WaterLevelData):
-        self.data["dashboard"]["waterLevel"] = waterLevel
-
-    def getWaterLevel(self) -> contract.WaterLevelData:
-        return self.data["dashboard"]["waterLevel"]
-
-    def addPhoto(self, photo: contract.PhotoCapture):
-        self.data["dashboard"]["photos"].append(photo)
-        while len(self.data["dashboard"]["photos"]) > 10:
-            self.data["dashboard"]["photos"].pop(0)
-
-    def getPhotos(self) -> list[contract.PhotoCapture]:
-        return self.data["dashboard"]["photos"]
-
-    def setPlanterEnabled(self, enabled: bool):
-        self.data["control"]["planterEnabled"] = enabled
-
-    def getPlanterEnabled(self) -> bool:
-        return self.data["control"]["planterEnabled"]
-
-    def setHydroponicEnabled(self, enabled: bool):
-        self.data["control"]["hydroponicEnabled"] = enabled
-
-    def getHydroponicEnabled(self) -> bool:
-        return self.data["control"]["hydroponicEnabled"]
-
-    def setDryThreshold(self, threshold: float):
-        self.data["control"]["dryThreshold"] = threshold
-
-    def getDryThreshold(self) -> float:
-        return self.data["control"]["dryThreshold"]
-
-    def setFlowTime(self, flowTime: float):
-        self.data["control"]["flowTime"] = flowTime
-
-    def getFlowTime(self) -> float:
-        return self.data["control"]["flowTime"]
-
-    def setResevoirHeight(self, height: float):
-        self.data["control"]["resevoirHeight"] = height
-
-    def getResevoirHeight(self) -> float:
-        return self.data["control"]["resevoirHeight"]
-
-    def setEmptyResevoirHeight(self, height: float):
-        self.data["control"]["emptyResevoirHeight"] = height
-
-    def getEmptyResevoirHeight(self) -> float:
-        return self.data["control"]["emptyResevoirHeight"]
-
-    def setFullResevoirHeight(self, height: float):
-        self.data["control"]["fullResevoirHeight"] = height
-
-    def getFullResevoirHeight(self) -> float:
-        return self.data["control"]["fullResevoirHeight"]
+    def __init__(self, data: contract.IHubState = contract.DefaultHubState):
+        self.data = data
 
 
-state = HubState()
-state.data = contract.DefaultHubState
+# pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DATABASE_URL)
+
+rows = {
+    "light": ["id", "luminosity", "timestamp"],
+    "moisture_level": [
+        "id",
+        "sensor1",
+        "sensor2",
+        "sensor3",
+        "sensor4",
+        "sensor5",
+        "sensor6",
+        "sensor7",
+        "sensor8",
+        "timestamp",
+    ],
+    "photos": ["id", "timestamp", "filepath", "width", "height"],
+    "temperature": ["id", "fahrenheit", "timestamp"],
+    "water_level": ["id", "timestamp", "distance"],
+}
+
+
+def omit(obj, *keys):
+    return {k: v for k, v in obj.items() if k not in keys}
+
+
+def parseRows(cursor, table: str):
+    result = []
+    for row in cursor.fetchall():
+        result.append(dict(zip(rows[table], row)))
+    return [omit(row, "id") for row in result]
+
+
+def fetchDashboardState():
+    # get the state from the database
+    try:
+        curr.execute("SELECT * FROM light order by id desc limit 1")
+        light = parseRows(curr, "light")
+
+        curr.execute("SELECT * FROM moisture_level order by id desc limit 1")
+        moisture = parseRows(curr, "moisture_level")
+
+        curr.execute("SELECT * FROM temperature order by id desc limit 1")
+        temperature = parseRows(curr, "temperature")
+
+        curr.execute("SELECT * FROM water_level order by id desc limit 1")
+        water = parseRows(curr, "water_level")
+
+        curr.execute("SELECT * FROM photos order by id desc limit 10")
+        photos = parseRows(curr, "photos")
+
+        return {
+            "light": light[0],
+            "moisture": moisture[0],
+            "temperature": temperature[0],
+            "waterLevel": water[0],
+            "photos": photos,
+        }
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+
+state = HubState(
+    {
+        "dashboard": fetchDashboardState(),
+        "control": contract.DefaultHubState["control"],
+    }
+)
+
 
 def insertDB(table: str, cols: str, data: str):
     print(f"INSERT INTO {table} ({cols}) VALUES({data})")
@@ -182,22 +179,28 @@ async def handle_messages(controlHub: ControlHub):
     stream = controlHub.stream()
     async for message in stream:
         # do something based on what message you get
+        print(message)
         try:
             # TODO: remove print statements below when everything's tested
-            print(message)
+            # print(message)
             if message.system == contract.System.MONITORING:
                 if message.type == contract.MessageType.TEMPERATURE:
                     # insertTemperature(message)
-                    state.data["dashboard"]["light"] = message.data
-                    print(message)
+                    state.data["dashboard"]["temperature"] = message.data
+                    await websocket.send(json.dumps(state))
+                    # print(message)
                 if message.type == contract.MessageType.LIGHT_READING:
                     # insertLight(message)
                     state.data["dashboard"]["light"] = message.data
-                    print(message)
+                    # print(message)
                 if message.type == contract.MessageType.WATER_LEVEL:
                     # insertWaterLevel(message)
-                    state.data["dashboard"]["water"] = message.data
-                    print(message)
+                    state.data["dashboard"]["waterLevel"] = message.data
+                    # print(message)
+                if message.type == contract.MessageType.MOISTURE_READING:
+                    # insertMoistureLevel(message)
+                    state.data["dashboard"]["moisture"] = message.data
+                    # print(message)
 
             if message.system == contract.System.CAMERA:
                 if message.type == contract.MessageType.PHOTO_CAPTURED:
@@ -226,6 +229,17 @@ async def handle_messages(controlHub: ControlHub):
             print("something broke")
 
 
+# async def websocket_handler(_socket):
+#     websocket = _socket
+#     while True:
+#         try:
+#             print("waiting for message")
+#             async for message in _socket:
+#                 print(message)
+#         except websockets.exceptions.ConnectionClosed:
+#             print("Connection closed")
+
+
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
     await controlHub.startServer()
@@ -233,21 +247,83 @@ async def main():
     # create non-blocking concurrent task
     asyncio.create_task(handle_messages(controlHub))
 
-    # control hub monitoring, can be crated as another task
     while True:
         await asyncio.sleep(2)
+        # lock.acquire()
+        # moisture_readings = arduino.getSensorValues()
+
+        # state.data["dashboard"]["moisture"] = {
+        #     "sensor1": moisture_readings[0],
+        #     "sensor2": moisture_readings[1],
+        #     "sensor3": moisture_readings[2],
+        #     "sensor4": moisture_readings[3],
+        #     "sensor5": moisture_readings[4],
+        #     "sensor6": moisture_readings[5],
+        #     "sensor7": moisture_readings[6],
+        #     "sensor8": moisture_readings[7],
+        # }
+        # lock.release()
+
 
 app = Flask(__name__)
-@app.route('/fetch', methods=['GET'])
+CORS(app)
+
+
+@app.route("/fetch", methods=["GET"])
 def fetch():
     ret = json.dumps(state.data, cls=contract.ContractEncoder)
     return ret
 
-@app.route('/update', methods=['POST'])
+
+@app.route("/update", methods=["POST"])
 def update():
-    message = request.form.to_dict()
-    state.data = message
+    # print(f"update request: {request.json}")
+    # newState: contract.IHubState = request.get_json()
+    try:
+        newState: contract.IHubState = request.json
+
+        lock.acquire()
+
+        # if (
+        #     newState["control"]["planterEnabled"]
+        #     != state.data["control"]["planterEnabled"]
+        # ):
+        #     arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0)
+
+        # if (
+        #     newState["control"]["hydroponicEnabled"]
+        #     != state.data["control"]["hydroponicEnabled"]
+        # ):
+        #     arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0)
+
+        # if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
+        #     arduino.setDryThreshold(newState["control"]["dryThreshold"])
+
+        # if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
+        #     arduino.setFlowTime(newState["control"]["flowTime"])
+
+        # if the water level is below 10% force pumps to be disabled
+        if (
+            (
+                newState["control"]["emptyResevoirHeight"]
+                - newState["dashboard"]["waterLevel"]["distance"]
+            )
+            / newState["control"]["resevoirHeight"]
+        ) < 0.1:
+            # arduino.setPlanterPumps(0)
+            newState["control"]["planterEnabled"] = False
+
+        lock.release()
+
+        state.data = newState
+
+        return newState
+
+    except Exception as e:
+        print(e)
+        return {"Error": True}
+
 
 serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
 serverThread.start()
-app.run(debug=True)
+app.run(debug=False)

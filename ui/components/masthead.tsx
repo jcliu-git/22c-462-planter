@@ -1,4 +1,12 @@
-import { AppBar, Box, IconButton, Toolbar, Typography } from "@mui/material";
+import {
+  AppBar,
+  Box,
+  CustomTheme,
+  IconButton,
+  Toolbar,
+  Typography,
+  useTheme,
+} from "@mui/material";
 
 import { Menu } from "@mui/icons-material";
 import { useDispatch } from "react-redux";
@@ -6,6 +14,7 @@ import { Dispatch } from "../models/store";
 
 export function Masthead() {
   const dispatch = useDispatch<Dispatch>();
+  const theme = useTheme<CustomTheme>();
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static" enableColorOnDark={true} color="primary">

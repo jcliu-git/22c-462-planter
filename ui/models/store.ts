@@ -5,6 +5,8 @@ import {
   RematchRootState,
 } from "@rematch/core";
 import { Models } from "@rematch/core";
+import { uniq } from "lodash";
+import { useEffect } from "react";
 import { api } from "./api";
 
 interface DrawerState {
@@ -104,14 +106,14 @@ export function PhotoData(data?: IPhotoData): IPhotoData {
 
 export interface ITemperatureData {
   timestamp: string;
-  temperature: number;
+  fahrenheit: number;
 }
 
 export function TemperatureData(data?: ITemperatureData): ITemperatureData {
   return (
     data || {
       timestamp: new Date().toISOString(),
-      temperature: 0,
+      fahrenheit: 0,
     }
   );
 }
@@ -156,24 +158,38 @@ export function DashboardState(data?: IDashboardState): IDashboardState {
   );
 }
 
-export const dashboardState = createModel<RootModel>()({
-  state: DashboardState(),
-  reducers: {
-    replace(state, payload: any) {
-      return payload;
-    },
-  },
-  effects: (dispatch) => ({
-    async fetchLatest() {
-      try {
-        let data = await api.dashboard.fetchLatest();
-        dispatch.dashboard.replace(data);
-      } catch (e) {
-        console.log(e);
-      }
-    },
-  }),
-});
+// export const dashboardState = createModel<RootModel>()({
+//   state: DashboardState(),
+//   reducers: {
+//     replace(state, payload: any) {
+//       return payload;
+//     },
+//     setWaterLevel(state, payload: IWaterLevelData) {
+//       return {
+//         ...state,
+//         waterLevel: payload,
+//       };
+//     },
+//   },
+//   effects: (dispatch) => ({
+//     async fetchLatest() {
+//       try {
+//         let data = await api.dashboard.fetchLatest();
+//         dispatch.dashboard.replace(data);
+//       } catch (e) {
+//         console.log(e);
+//       }
+//     },
+//     async fetchWaterLevel() {
+//       try {
+//         let data = await api.dashboard.waterLevel.fetchLatest();
+//         dispatch.dashboard.setWaterLevel(data);
+//       } catch (e) {
+//         console.log(e);
+//       }
+//     },
+//   }),
+// });
 
 export interface IControlState {
   planterEnabled: boolean;
@@ -201,67 +217,278 @@ export function ControlState(data?: IControlState): IControlState {
   );
 }
 
-export const controlState = createModel<RootModel>()({
-  state: ControlState(),
+// export const controlState = createModel<RootModel>()({
+//   state: ControlState(),
+//   reducers: {
+//     togglePlanter(state) {
+//       let newState = {
+//         ...state,
+//         planterEnabled: !state.planterEnabled,
+//       };
+//       api.control.update(newState);
+//       return newState;
+//     },
+//     toggleHydroponic(state) {
+//       let newState = {
+//         ...state,
+//         hydroponicEnabled: !state.hydroponicEnabled,
+//       };
+//       api.control.update(newState);
+//       return newState;
+//     },
+//     setDryThreshold(state, payload: number) {
+//       let newState = {
+//         ...state,
+//         dryThreshold: payload,
+//       };
+//       api.control.update(newState);
+//       return newState;
+//     },
+//     setFlowTime(state, payload: number) {
+//       let newState = {
+//         ...state,
+//         flowTime: payload,
+//       };
+//       api.control.update(newState);
+//       return newState;
+//     },
+//     toggleCalibration(state, currentHeight: number) {
+//       // when calibration starts, set the empty resevoir height
+
+//       let newState = {
+//         ...state,
+//         emptyResevoirHeight: state.calibrating
+//           ? state.emptyResevoirHeight
+//           : currentHeight,
+//         fullResevoirHeight: state.calibrating
+//           ? currentHeight
+//           : state.fullResevoirHeight,
+//         calibrating: !state.calibrating,
+//       };
+//       return newState;
+//     },
+//     replace(state, payload: any) {
+//       if (typeof payload.calibrating == "undefined") {
+//         payload.calibrating = state.calibrating;
+//       }
+//       return payload;
+//     },
+//   },
+//   effects: (dispatch) => ({
+//     async fetchLatest() {
+//       try {
+//         let data = await api.control.fetch();
+//         let state = store.getState();
+//         data.calibrating = state.control.calibrating;
+//         dispatch.control.replace(data);
+//       } catch (e) {
+//         console.log(e);
+//       }
+//     },
+//   }),
+// });
+
+export const hubState = createModel<RootModel>()({
+  state: {
+    control: ControlState(),
+    dashboard: DashboardState(),
+  } as IHubState,
   reducers: {
+    replace(state, payload: IHubState) {
+      return payload;
+    },
     togglePlanter(state) {
-      return {
+      let newState = {
         ...state,
-        planterEnabled: !state.planterEnabled,
+        control: {
+          ...state.control,
+          planterEnabled: !state.control.planterEnabled,
+        },
       };
+      api.hub.update(newState);
+      return newState;
     },
     toggleHydroponic(state) {
-      return {
+      let newState = {
         ...state,
-        hydroponicEnabled: !state.hydroponicEnabled,
+        control: {
+          ...state.control,
+          hydroponicEnabled: !state.control.hydroponicEnabled,
+        },
       };
+      api.hub.update(newState);
+      return newState;
     },
     setDryThreshold(state, payload: number) {
-      return {
+      let newState = {
         ...state,
-        dryThreshold: payload,
+        control: {
+          ...state.control,
+          dryThreshold: payload,
+        },
       };
+      api.hub.update(newState);
+      return newState;
     },
     setFlowTime(state, payload: number) {
-      return {
+      let newState = {
         ...state,
-        flowTime: payload,
+        control: {
+          ...state.control,
+          flowTime: payload,
+        },
       };
+      api.hub.update(newState);
+      return newState;
     },
     toggleCalibration(state, currentHeight: number) {
       // when calibration starts, set the empty resevoir height
 
+      let empty = state.control.calibrating
+        ? state.control.emptyResevoirHeight
+        : currentHeight;
+      let full = state.control.calibrating
+        ? currentHeight
+        : state.control.fullResevoirHeight;
+
+      let height = state.control.calibrating
+        ? empty - full
+        : state.control.resevoirHeight;
+
+      let newState = {
+        ...state,
+        control: {
+          ...state.control,
+          emptyResevoirHeight: empty,
+          fullResevoirHeight: full,
+          resevoirHeight: height,
+          calibrating: !state.control.calibrating,
+        },
+      };
+      api.hub.update(newState);
+      return newState;
+    },
+  },
+  effects: (dispatch) => ({
+    async fetch() {
+      try {
+        let data = await api.hub.fetch();
+        dispatch.hub.replace(data);
+      } catch (e) {
+        console.log(e);
+      }
+    },
+  }),
+});
+
+export interface RefetchRoutines {
+  calibrating: number;
+  hub: number;
+  running: boolean;
+  scheduled: RefetchRoutine[];
+}
+
+export enum RefetchRoutine {
+  Calibrating = "calibrating",
+  Hub = "hub",
+}
+
+export const refetchState = createModel<RootModel>()({
+  state: {
+    calibrating: 0,
+    hub: 0,
+    running: false,
+    scheduled: [],
+  } as RefetchRoutines,
+  reducers: {
+    subscribeHub(state, payload: number) {
+      // 0 = no subscription
+
       return {
         ...state,
-        emptyResevoirHeight: state.calibrating
-          ? state.emptyResevoirHeight
-          : currentHeight,
-        fullResevoirHeight: state.calibrating
-          ? currentHeight
-          : state.fullResevoirHeight,
-        calibrating: !state.calibrating,
+        hub: payload,
+      };
+    },
+
+    schedule(state, payload: RefetchRoutine) {
+      return {
+        ...state,
+        scheduled: uniq([...state.scheduled, payload]),
+      };
+    },
+    unschedule(state, payload: RefetchRoutine) {
+      return {
+        ...state,
+        scheduled: state.scheduled.filter((routine) => routine != payload),
+      };
+    },
+
+    setRunning(state, payload: boolean) {
+      return {
+        ...state,
+        running: payload,
       };
     },
   },
-  effects: (dispatch) => ({}),
+  effects: (dispatch) => ({
+    tick() {
+      let state = store.getState();
+
+      if (
+        state.refetch.hub &&
+        !state.refetch.scheduled.includes(RefetchRoutine.Hub)
+      ) {
+        dispatch.hub.fetch();
+        dispatch.refetch.schedule(RefetchRoutine.Hub);
+        setTimeout(() => {
+          dispatch.refetch.unschedule(RefetchRoutine.Hub);
+        }, state.refetch.hub);
+      }
+
+      if (state.refetch.running) {
+        setTimeout(dispatch.refetch.tick, 1000);
+      }
+    },
+    start() {
+      if (store.getState().refetch.running) {
+        return;
+      }
+      dispatch.refetch.setRunning(true);
+      dispatch.refetch.tick();
+    },
+    stop() {
+      dispatch.refetch.setRunning(false);
+    },
+  }),
 });
 
-export interface ServerState {
-  dashboard: IDashboardState,
-  control: IControlState
-}
-
 export interface RootModel extends Models<RootModel> {
-  dashboard: typeof dashboardState;
+  // dashboard: typeof dashboardState;
   drawer: typeof drawerState;
-  control: typeof controlState;
+  hub: typeof hubState;
+  // control: typeof controlState;
+  refetch: typeof refetchState;
 }
 
 export const models: RootModel = {
-  dashboard: dashboardState,
+  // dashboard: dashboardState,
   drawer: drawerState,
-  control: controlState,
+  hub: hubState,
+  // control: controlState,
+  refetch: refetchState,
 };
+
+export interface IHubState {
+  dashboard: IDashboardState;
+  control: IControlState;
+}
+
+export function HubState(): IHubState {
+  return {
+    dashboard: DashboardState(),
+    control: ControlState(),
+  };
+}
 
 export const store = init({
   models,

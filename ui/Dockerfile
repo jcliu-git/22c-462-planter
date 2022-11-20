@@ -13,8 +13,7 @@ COPY . .
 
 EXPOSE 3000
 
-# Add wait-for-it - This is to make sure db is ready before connecting to it
-COPY wait-for-it.sh .
+#  Give permission to wait-for-it.sh - This is to make sure db is ready before connecting to it
 RUN chmod +x wait-for-it.sh
 
 CMD ["./wait-for-it.sh", "db:5432", "--", "npm", "run", "dev"]

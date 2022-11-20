@@ -1,7 +1,16 @@
 import datetime
 from enum import Enum
 from json import dumps, JSONEncoder
-from typing import Any, AsyncGenerator, Generic, Optional, Type, TypeVar, TypedDict, Dict
+from typing import (
+    Any,
+    AsyncGenerator,
+    Generic,
+    Optional,
+    Type,
+    TypeVar,
+    TypedDict,
+    Dict,
+)
 
 
 def now():
@@ -43,6 +52,7 @@ class System(str, Enum):
     def __repr__(self):
         return str(self.value)
 
+
 # helps the receiving function identify whether this some data or a file
 class MessageIdentifier(str, Enum):
     DATA = "data"
@@ -53,6 +63,7 @@ class MessageIdentifier(str, Enum):
 
     def __repr__(self):
         return str(self.value)
+
 
 class MessageType(str, Enum):
     # generics
@@ -81,6 +92,7 @@ class MessageType(str, Enum):
     def __repr__(self):
         return str(self.value)
 
+
 # top level definitions
 
 DataType = TypeVar("DataType")
@@ -100,13 +112,14 @@ class Message(Generic[DataType]):
     system: System
     data: DataType
     identifier: MessageIdentifier
+
     def __init__(
-            self, 
-            type: MessageType, 
-            system: System, 
-            data: DataType, 
-            identifier: MessageIdentifier = MessageIdentifier.DATA
-        ):
+        self,
+        type: MessageType,
+        system: System,
+        data: DataType,
+        identifier: MessageIdentifier = MessageIdentifier.DATA,
+    ):
         self.type = type
         self.system = system
         self.data = data
@@ -117,7 +130,9 @@ class Message(Generic[DataType]):
 
     @staticmethod
     def fromJson(message):
-        return Message(message["type"], message["system"], message["data"], message["identifier"])
+        return Message(
+            message["type"], message["system"], message["data"], message["identifier"]
+        )
 
 
 class GenericMessage(Message[Any]):
@@ -132,30 +147,21 @@ class DataMessage(GenericMessage):
 # file
 class FileMessage(Message[DataType]):
     def __init__(
-            self, 
-            system: System, 
-            filename: str = None, 
-            filesize: int = None,
-            data = None, 
-            type: MessageType = MessageType.FILE_MESSAGE, 
-            combine: Dict = {}
-        ):
+        self,
+        system: System,
+        filename: str = None,
+        filesize: int = None,
+        data=None,
+        type: MessageType = MessageType.FILE_MESSAGE,
+        combine: Dict = {},
+    ):
         # data is obsolete but is still there just in case
         # should use combine instead, which combines the python dictionary with
         # the other important things like filename and filesize in the data dictionary
-        # tl;dr no need to do message["data"]["data"] or message.data["data"] anymore 
-        data_dict = {
-            "filename": filename,
-            "filesize": filesize,
-            "data": data
-        }
+        # tl;dr no need to do message["data"]["data"] or message.data["data"] anymore
+        data_dict = {"filename": filename, "filesize": filesize, "data": data}
         combined_dict = data_dict | combine
-        super().__init__(
-            type,
-            system,
-            combined_dict,
-            MessageIdentifier.FILE
-        )
+        super().__init__(type, system, combined_dict, MessageIdentifier.FILE)
 
 
 # subsurface definitions
@@ -349,15 +355,14 @@ class PhotoCaptureMessage(FileMessage):
         super().__init__(
             System.CAMERA,
             filename,
-            type = MessageType.PHOTO_CAPTURED,
-            combine = {
+            type=MessageType.PHOTO_CAPTURED,
+            combine={
                 "phototype": phototype,
                 "timestamp": timestamp,
                 "width": width,
                 "height": height,
             },
         )
-
 
     def __repr__(self):
         return dumps(self.__dict__)
@@ -369,7 +374,7 @@ class PhotoCaptureMessage(FileMessage):
             filepath += "motion/"
         elif message.data["phototype"] == "periodic":
             filepath += "periodic/"
-        elif message.data ["phototype"] == "growth":
+        elif message.data["phototype"] == "growth":
             filepath += "growth/"
         filepath += message.data["filename"]
         return PhotoCaptureMessage(
@@ -397,6 +402,25 @@ class IControlState(TypedDict):
     fullResevoirHeight: float
 
 
+class IDashboardState(TypedDict):
+    light: LightData
+    temperature: TemperatureData
+    photos: list[PhotoCapture]
+    waterLevel: WaterLevelData
+    moisture: MoistureData
+
+
+class IControlState(TypedDict):
+    planterEnabled: bool
+    hydroponicEnabled: bool
+    dryThreshold: float
+    flowTime: float
+    resevoirHeight: float
+    emptyResevoirHeight: float
+    fullResevoirHeight: float
+    calibrating: bool
+
+
 class IHubState(TypedDict):
     dashboard: IDashboardState
     control: IControlState
@@ -404,22 +428,20 @@ class IHubState(TypedDict):
 
 DefaultHubState: IHubState = {
     "dashboard": {
-        "moisture": {
-            "sensor1": 0,
-            "timestamp": now()
-        },
-        "light": {"light": 0.0, "timestamp": now()},
-        "water": {"waterLevel": 0.0, "timestamp": now()},
+        "moisture": {"sensor1": 0, "timestamp": now()},
+        "light": {"luminosity": 0.0, "timestamp": now()},
+        "waterLevel": {"distance": 0.0, "timestamp": now()},
         "temperature": {"temperature": 0.0, "timestamp": now()},
         "photos": {"photos": [], "timestamp": now()},
     },
     "control": {
-        "planterEnabled": False,
-        "hydroponicEnabled": False,
-        "dryThreshold": 0.0,
-        "flowTime": 0.0,
-        "resevoirHeight": 0.0,
-        "emptyResevoirHeight": 0.0,
-        "fullResevoirHeight": 0.0,
+        "planterEnabled": True,
+        "hydroponicEnabled": True,
+        "dryThreshold": 500,
+        "flowTime": 3.0,
+        "resevoirHeight": 245,
+        "emptyResevoirHeight": 250,
+        "fullResevoirHeight": 5,
+        "calibrating": False,
     },
 }

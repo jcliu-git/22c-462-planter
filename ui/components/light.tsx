@@ -7,7 +7,7 @@ import { Dispatch, RootState, store } from "../models/store";
 export function LightSensor() {
   const theme = useTheme();
 
-  const light = useSelector((state: RootState) => state.dashboard.light);
+  const light = useSelector((state: RootState) => state.hub.dashboard.light);
   const dispatch = useDispatch<Dispatch>();
   return (
     <div>
