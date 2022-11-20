@@ -13,5 +13,5 @@ COPY . .
 RUN chmod +x wait-for-it.sh
 
 # -u flag (unbuffered output) shows output of python file even when the container is running in detached mode 
-CMD ["./wait-for-it.sh", "db:5432", "--", "python","-u", "main.py"] 
+CMD ["./wait-for-it.sh", "db:5432", "--", "python","-u", "hub.py"] 
 
