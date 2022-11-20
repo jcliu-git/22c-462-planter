@@ -7,3 +7,4 @@ examples/
 ui/public/motion
 ui/public/periodic
 hub/temp
+ui/package-lock.json
