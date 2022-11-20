@@ -11,9 +11,8 @@ from pathlib import Path
 from threading import Thread
 from types import AsyncGeneratorType
 from typing import Any, AsyncGenerator, Generator
-
 sys.path.append("../")
-import contract.contract as contract
+import hub.contract.contract as contract
 
 Path("logs").mkdir(parents=True, exist_ok=True)
 logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"

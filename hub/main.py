@@ -12,14 +12,13 @@ import json
 import threading
 from flask import Flask, request
 sys.path.append("../")
-import contract.contract as contract
+import hub.contract.contract as contract
 from hub.network462 import ControlHub
 
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
+DATABASE_URL = "postgresql://postgres:postgres@db:5432/garden" #change from localhost to db to connect to database in container
 conn = psycopg2.connect(DATABASE_URL)
 conn.autocommit = True
 curr = conn.cursor()
-
 
 class HubState:
     data: contract.IHubState
@@ -108,7 +107,6 @@ state.data = contract.DefaultHubState
 def insertDB(table: str, cols: str, data: str):
     print(f"INSERT INTO {table} ({cols}) VALUES({data})")
     curr.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
-    conn.commit()
 
 
 def insertMoistureLevel(message: contract.MoistureReadingMessage):
