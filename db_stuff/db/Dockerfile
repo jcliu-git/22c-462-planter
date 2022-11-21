@@ -6,9 +6,11 @@ ENV POSTGRES_PASSWORD postgres
 ENV POSTGRES_DB garden
 # Do not specifiy POSTGRES_USER so defaulted to postgres
 
+#Copying all files into container 
 COPY . .
-#Give permision
-RUN chmod 777 *
+
+#Give permision 
+RUN chmod 777 *.sh
 
 EXPOSE 5432
 

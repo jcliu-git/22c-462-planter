@@ -1,6 +1,6 @@
 #!/bin/bash
 
-psql -U postgres -d garden -a -f deleteOldRows.sql
+PGPASSWORD="postgres" psql -h db -p 5432 -U postgres -d garden -a -f deleteOldRows.sql
 
 #TODO: set up a Cron Job
 #@weekly <path to deleteOldRows.sh> 
