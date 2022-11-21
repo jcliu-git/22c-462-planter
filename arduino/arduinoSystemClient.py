@@ -40,6 +40,7 @@ def dryThresholdFromPercent(percent: float):
 
 def setPlanterPumps(val):
     # 1 = on, 0 = off
+    print(f'set planter pumps: {val}')
     msg_buf = [255, 1, val, val]
     with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
@@ -50,6 +51,7 @@ def setPlanterPumps(val):
 def setHydroPump(val):
     # 1 = on, 0 = off
     msg_buf = [255, 2, val, val]
+    print(f'setHydro: {val}')
     with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
         response_bstr = ser.read(4)
@@ -57,7 +59,10 @@ def setHydroPump(val):
 
 
 def setDryThreshold(val):
-    byte_arr = convertToBytes(val)
+    adjustedVal = int(dryThresholdFromPercent(val/100))
+    print(f'setting dry threshold {val} percent which is {adjustedVal}')
+    
+    byte_arr = convertToBytes(adjustedVal)
     if len(byte_arr) > 2:
         print("Number too large, must fit in 2 bytes")
         return False
@@ -71,6 +76,8 @@ def setDryThreshold(val):
 
 
 def setFlowTime(val):
+    print(f'setting flow time to {val} seconds')
+    val = val * 1000
     # flow time in ms
     byte_arr = convertToBytes(val)
     if len(byte_arr) > 4:
@@ -103,4 +110,4 @@ def getSensorValues():
 # print(setHydroPump(False))
 # print(setDryThreshold(490))
 # print(setFlowTime(1230))
-print(getSensorValues())
+#print(getSensorValues())

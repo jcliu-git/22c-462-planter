@@ -182,15 +182,16 @@ async def handle_messages(controlHub: ControlHub):
     stream = controlHub.stream()
     async for message in stream:
         # do something based on what message you get
-        print(message)
+        #print(message)
         try:
             # TODO: remove print statements below when everything's tested
             # print(message)
+
             if message.system == contract.System.MONITORING:
                 if message.type == contract.MessageType.TEMPERATURE:
                     # insertTemperature(message)
                     state.data["dashboard"]["temperature"] = message.data
-                    await websocket.send(json.dumps(state))
+                    #await websocket.send(json.dumps(state))
                     # print(message)
                 if message.type == contract.MessageType.LIGHT_READING:
                     # insertLight(message)
@@ -203,7 +204,6 @@ async def handle_messages(controlHub: ControlHub):
                 if message.type == contract.MessageType.MOISTURE_READING:
                     # insertMoistureLevel(message)
                     state.data["dashboard"]["moisture"] = message.data
-                    # print(message)
 
             if message.system == contract.System.CAMERA:
                 if message.type == contract.MessageType.PHOTO_CAPTURED:
@@ -251,23 +251,30 @@ async def main():
     asyncio.create_task(handle_messages(controlHub))
 
     while True:
-        await asyncio.sleep(10)
+        try:
+            await asyncio.sleep(5)
         
-        lock.acquire()
-        moisture_readings = arduino.getSensorValues()
-        print(moisture_readings)
+            lock.acquire()
+            moisture_readings = arduino.getSensorValues()
+            print(moisture_readings)
 
-        state.data["dashboard"]["moisture"] = {
-            "sensor1": moisture_readings[0],
-            "sensor2": moisture_readings[1],
-            "sensor3": moisture_readings[2],
-            "sensor4": moisture_readings[3],
-            "sensor5": moisture_readings[4],
-            "sensor6": moisture_readings[5],
-            "sensor7": moisture_readings[6],
-            "sensor8": moisture_readings[7],
-        }
-        lock.release()
+            if not moisture_readings:
+                lock.release()
+                continue
+
+            state.data["dashboard"]["moisture"] = {
+                "sensor1": moisture_readings[0],
+                "sensor2": moisture_readings[1],
+                "sensor3": moisture_readings[2],
+                "sensor4": moisture_readings[3],
+                "sensor5": moisture_readings[4],
+                "sensor6": moisture_readings[5],
+                "sensor7": moisture_readings[6],
+                "sensor8": moisture_readings[7],
+            }
+            lock.release()
+        except:
+            continue
 
 
 app = Flask(__name__)
@@ -286,6 +293,8 @@ def update():
     # newState: contract.IHubState = request.get_json()
     try:
         newState: contract.IHubState = request.json
+        
+        print(newState)
 
         lock.acquire()
 
@@ -308,13 +317,15 @@ def update():
             assert arduino.setFlowTime(newState["control"]["flowTime"]) == True
 
         #if the water level is below 10% force pumps to be disabled
-        if (
-            (
+        remainingWaterLevel = (
                 newState["control"]["emptyResevoirHeight"]
                 - newState["dashboard"]["waterLevel"]["distance"]
             )
+        if (
+            remainingWaterLevel
             / newState["control"]["resevoirHeight"]
         ) < 0.1:
+            print(f'remaining water {remainingWaterLevel} is less than 10% of {newState["control"]["resevoirHeight"]}, disabling planter pumps')
             assert arduino.setPlanterPumps(0) == True
             newState["control"]["planterEnabled"] = False
 
