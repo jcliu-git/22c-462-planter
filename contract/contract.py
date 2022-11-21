@@ -431,7 +431,7 @@ DefaultHubState: IHubState = {
         "moisture": {"sensor1": 0, "timestamp": now()},
         "light": {"luminosity": 0.0, "timestamp": now()},
         "waterLevel": {"distance": 0.0, "timestamp": now()},
-        "temperature": {"temperature": 0.0, "timestamp": now()},
+        "temperature": {"fahrenheit": 0.0, "timestamp": now()},
         "photos": {"photos": [], "timestamp": now()},
     },
     "control": {
