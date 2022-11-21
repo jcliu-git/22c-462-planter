@@ -10,25 +10,36 @@ export const message = {
 
 export class Socket {
   private socket?: WebSocket;
-  constructor(private port: number = 5000) {}
+  private reconnectInterval?: ReturnType<typeof setInterval>;
+  private port: number;
+  constructor(port: number = 5000) {
+    this.port = port;
+    this.reconnectInterval = setInterval(() => this.connect(), 1000);
+  }
   async onMessage(message: any) {}
   async connect() {
     if (typeof window !== "undefined") {
       this.socket = new WebSocket(`ws://localhost:${this.port}`);
-      console.log("websocket connected");
+
       await new Promise((resolve) =>
         this.socket?.addEventListener("open", resolve)
       );
+      console.log("websocket connected");
+      clearInterval(this.reconnectInterval);
       this.socket?.addEventListener("message", this.onMessage);
       this.socket?.addEventListener("error", (e) => {
         console.log(e);
         this.socket = undefined;
         this.onMessage = async (message) => {};
+        clearInterval(this.reconnectInterval);
+        this.reconnectInterval = setInterval(() => this.connect(), 1000);
       });
       this.socket?.addEventListener("close", (e) => {
         console.log(e);
         this.socket = undefined;
         this.onMessage = async (message) => {};
+        clearInterval(this.reconnectInterval);
+        this.reconnectInterval = setInterval(() => this.connect(), 1000);
       });
     }
   }
