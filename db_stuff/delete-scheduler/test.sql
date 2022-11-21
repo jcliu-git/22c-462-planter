@@ -1,0 +1,1 @@
+INSERT INTO light (luminosity,"timestamp") VALUES(3, '2022-03-3 11:20');

@@ -3,14 +3,20 @@ version: "3.9"
 services:
   db:
     container_name: db_container
-    build: ./db_stuff
+    build: ./db_stuff/db
     ports:
       - 5432:5432
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
       - my-net
-
+  delete-scheduler:
+    container_name: scheduler_container
+    build: ./db_stuff/delete-scheduler
+    networks:
+      - my-net
+    depends_on:
+      - db
   hub:
     container_name: hub_container
     build: ./hub
