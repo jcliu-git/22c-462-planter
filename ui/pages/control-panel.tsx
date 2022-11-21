@@ -20,10 +20,10 @@ export default function ControlPanel() {
   const theme = useTheme<CustomTheme>();
   const hub = useSelector((state: RootState) => state.hub);
 
-  useEffect(() => {
-    dispatch.refetch.subscribeHub(5000);
-    dispatch.refetch.start();
-  }, []);
+  // useEffect(() => {
+  //   dispatch.refetch.subscribeHub(5000);
+  //   dispatch.refetch.start();
+  // }, []);
 
   const dispatch = useDispatch<Dispatch>();
   let dryThreshold = hub.control.dryThreshold;
@@ -233,9 +233,11 @@ export default function ControlPanel() {
                     }}
                   >
                     <Box>
-                      <Typography>{`Distance: ${hub.dashboard.waterLevel.distance} cm`}</Typography>
+                      <Typography>{`Distance: ${hub.dashboard.waterLevel.distance.toFixed(
+                        2
+                      )} cm`}</Typography>
                       <Typography variant="body1" sx={{ textAlign: "center" }}>
-                        {`Height: ${hub.control.resevoirHeight} cm`}
+                        {`Height: ${hub.control.resevoirHeight.toFixed(2)} cm`}
                       </Typography>
                     </Box>
                   </Box>
