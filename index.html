@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+    const websocket = new WebSocket("ws://localhost:5000/");
+  
+    document.querySelector(".fetch").addEventListener("click", () => {
+      websocket.send(JSON.stringify({ action: "fetch" }));
+    });
+  
+    document.querySelector(".update").addEventListener("click", () => {
+      // should use JSON.stringify(dict) instead of this, this was just hacked together in a minute
+      websocket.send(`{"identifier": "data", "data":{"dashboard":{"moisture":{"sensor1":0,"timestamp":"1999-11-20 17:08:59"},"light":{"luminosity":0,"timestamp":"2022-11-20 17:06:35"},"waterLevel":{"distance":0,"timestamp":"2022-11-20 17:06:35"},"temperature":{"temperature":0,"timestamp":"2022-11-20 17:06:35"},"photos":{"photos":[],"timestamp":"2022-11-20 17:06:35"}},"control":{"planterEnabled":true,"hydroponicEnabled":true,"dryThreshold":500,"flowTime":3,"resevoirHeight":245,"emptyResevoirHeight":250,"fullResevoirHeight":5,"calibrating":false}},"type":"update", "system": "ui"}`);
+    });
+  
+    websocket.onmessage = ({ data }) => {
+      const event = JSON.parse(data);
+      switch (event.action) {
+        case "fetch":
+            document.querySelector(".users").textContent = JSON.stringify(event);
+            break;
+        default:
+          console.error("unsupported event", event);
+        
+      }
+    };
+  });
+  </script>
+</head>
+<body>
+  <button class="fetch">fetch</button>
+  <button class="update">update</button>
+  <div class="users"></div>
+</body>
+</html>

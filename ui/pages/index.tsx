@@ -13,15 +13,22 @@ import { CleverGardenContext } from "../models/context";
 export default function Dashboard() {
   const dispatch = useDispatch<Dispatch>();
   const theme = useTheme<CustomTheme>();
-  const context = useContext(CleverGardenContext);
-
-  useEffect(() => {
-    dispatch.refetch.subscribeHub(5000);
-    dispatch.refetch.start();
-  }, []);
 
   // useEffect(() => {
-  //   context.socket.send(message);
+  //   dispatch.refetch.subscribeHub(5000);
+  //   dispatch.refetch.start();
+  // }, []);
+
+  // useEffect(() => {
+  //   context.socket.send(
+  //     JSON.stringify({
+  //       system: "ui",
+  //       type: "update",
+  //       data: {
+  //         hello: "world",
+  //       },
+  //     })
+  //   );
   // });
 
   return (

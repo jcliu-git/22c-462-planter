@@ -45,6 +45,7 @@ class System(str, Enum):
     CAMERA = "camera"
     IRRIGATION = "irrigation"
     HYDROPONICS = "hydroponics"
+    UI = "ui"
 
     def __str__(self):
         return str(self.value)
@@ -85,6 +86,8 @@ class MessageType(str, Enum):
 
     # temperature
     TEMPERATURE = "temperature"
+
+    HUB_STATE = "hub_state"
 
     def __str__(self):
         return str(self.value)

@@ -9,15 +9,19 @@ from Sensor_array import *
 
 async def main():
     client = MonitoringClient(
-        contract.System.MONITORING, '192.168.3.143', contract.NETWORK_PORT
+        contract.System.MONITORING, "192.168.3.143", contract.NETWORK_PORT
     )
     await client.connect()
-    print('connected')
+    print("connected")
     try:
         while True:
             try:
-                await client.sendWaterLevel(contract.WaterLevelReadingMessage(getDepthData()))
-                await client.sendLightLevel(contract.LightLevelReadingMessage(getLightData()))
+                await client.sendWaterLevel(
+                    contract.WaterLevelReadingMessage(getDepthData())
+                )
+                await client.sendLightLevel(
+                    contract.LightLevelReadingMessage(getLightData())
+                )
                 await client.sendTemperature(
                     contract.TemperatureReadingMessage(getTemperatureData())
                 )
@@ -30,6 +34,3 @@ async def main():
 
 
 asyncio.run(main())
-
-
-

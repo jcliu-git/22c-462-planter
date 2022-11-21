@@ -8,6 +8,7 @@ import { Models } from "@rematch/core";
 import { uniq } from "lodash";
 import { useEffect } from "react";
 import { api } from "./api";
+import { Socket } from "./socket";
 
 interface DrawerState {
   open: boolean;
@@ -493,6 +494,13 @@ export function HubState(): IHubState {
 export const store = init({
   models,
 });
+
+export const socket = new Socket();
+
+if (typeof window !== "undefined") {
+  socket.bindToStore(store);
+  socket.connect();
+}
 
 export type Store = typeof store;
 export type Dispatch = RematchDispatch<RootModel>;

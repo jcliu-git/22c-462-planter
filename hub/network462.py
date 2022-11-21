@@ -11,6 +11,8 @@ from pathlib import Path
 from threading import Thread
 from types import AsyncGeneratorType
 from typing import Any, AsyncGenerator, Generator
+import websockets
+
 sys.path.append("../")
 import contract.contract as contract
 
@@ -39,11 +41,32 @@ class ControlHub(object):
         self._port = port
         self._server = None
         self._clients = {}
+        self.websocket = None
         self.queue = asyncio.Queue()
+        self.web_socket_server = None
+        self.websockets = {}
+
+    async def _webSocketListener(self, socket):
+        self.websockets[socket.id] = socket
+        try:
+            async for message in socket:
+                try:
+                    # print(message)
+                    await self.queue.put(json.loads(message))
+                except Exception as err:
+                    logging.error("Websocket message processing failed: %s", err)
+        finally:
+            del self.websockets[socket.id]
+
+    async def _startWebSocketServer(self):
+        async with websockets.serve(self._webSocketListener, "0.0.0.0", 5000) as server:
+            self.web_socket_server = server
+            await asyncio.Future()
 
     async def startServer(self):
         self._server = await asyncio.start_server(self._listen, self._host, self._port)
         asyncio.create_task(self._server.serve_forever())
+        asyncio.create_task(self._startWebSocketServer())
         print("Server has started.")
 
     async def _listen(self, reader, writer):
@@ -111,7 +134,12 @@ class ControlHub(object):
     async def stream(self) -> AsyncGenerator[contract.Message, None]:
         while True:
             queueItem: contract.Message = await self.queue.get()
-            yield contract.Message.fromJson(queueItem)
+            # print(queueItem)
+            try:
+                yield contract.Message.fromJson(queueItem)
+            except Exception as err:
+                print("Error in stream: ", err)
+                continue
 
 
 class Client(object):
@@ -336,23 +364,6 @@ class MonitoringClient(Client):
 
     async def sendLightLevel(self, message: contract.LightLevelReadingMessage):
         await self._sendContract(message)
-
-
-class SubsurfaceClient(Client):
-    def __init__(
-        self,
-        system: contract.System = contract.System.SUBSURFACE,
-        host: str = "127.0.0.1",
-        port: int = 32132,
-    ):
-        super().__init__(system, host, port)
-
-    def logMoistureData(self, data: contract.MoistureReadingMessage):
-        """
-        Send moisture data to hub
-        if the timestamp is not specified it will be added for you
-        """
-        self._sendContract(data)
 
 
 class CameraClient(Client):
