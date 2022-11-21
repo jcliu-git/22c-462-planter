@@ -6,7 +6,9 @@ import { Dispatch, store } from "../models/store";
 import { Navigation } from "../components/navigation";
 import { Masthead } from "../components/masthead";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { createContext, useEffect } from "react";
+import { Socket } from "../models/socket";
+import { CleverGardenContext } from "../models/context";
 
 export default function App({ Component, pageProps }: any) {
   const router = useRouter();
@@ -15,10 +17,16 @@ export default function App({ Component, pageProps }: any) {
     <NoSsr>
       <ThemeProvider theme={theme}>
         <Provider store={store}>
-          <CssBaseline />
-          <Navigation />
-          <Masthead />
-          <Component {...pageProps} />
+          <CleverGardenContext.Provider
+            value={{
+              socket: new Socket(),
+            }}
+          >
+            <CssBaseline />
+            <Navigation />
+            <Masthead />
+            <Component {...pageProps} />
+          </CleverGardenContext.Provider>
         </Provider>
       </ThemeProvider>
     </NoSsr>

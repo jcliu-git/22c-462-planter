@@ -1,25 +1,28 @@
 import Head from "next/head";
 import MoistureSensors from "../components/moistureSensors";
-import Slideshow from "../components/slideshow";
 import { WaterConsumption } from "../components/waterConsumption";
 import { WaterLevel } from "../components/waterLevel";
 import styles from "../styles/Home.module.css";
 import { Box, CustomTheme, Grid, useTheme } from "@mui/material";
-import React, { useEffect } from "react";
-import { TemperatureSensor } from "../components/temperature";
-import { LightSensor } from "../components/light";
+import React, { useContext, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { Dispatch, RefetchRoutine } from "../models/store";
+import { Dispatch } from "../models/store";
 import { TempAndLight } from "../components/tempAndLight";
+import { CleverGardenContext } from "../models/context";
 
 export default function Dashboard() {
   const dispatch = useDispatch<Dispatch>();
   const theme = useTheme<CustomTheme>();
+  const context = useContext(CleverGardenContext);
 
   useEffect(() => {
     dispatch.refetch.subscribeHub(5000);
     dispatch.refetch.start();
   }, []);
+
+  // useEffect(() => {
+  //   context.socket.send(message);
+  // });
 
   return (
     <div className={styles.container}>
@@ -33,17 +36,16 @@ export default function Dashboard() {
           <Grid
             item
             container
-            direction="column"
+            // direction="column"
             spacing={theme.spacing(3)}
-            alignItems="center"
-            sm={12}
-            md={6}
+            alignItems="stretch"
+            xs={12}
           >
-            <Grid
-              item
-              sx={{ display: "block", width: "100%", height: "188px" }}
-            >
+            <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
               <TempAndLight />
+            </Grid>
+            <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
+              <WaterLevel />
             </Grid>
 
             {/* <Grid
@@ -56,16 +58,10 @@ export default function Dashboard() {
           <Grid
             item
             container
-            direction="column"
-            sm={12}
-            md={6}
+            xs={12}
             spacing={theme.spacing(3)}
             alignItems="center"
           >
-            <Grid item sx={{ display: "block", width: "100%" }}>
-              <WaterLevel />
-            </Grid>
-
             <Grid item sx={{ display: "block", width: "100%" }}>
               <MoistureSensors />
             </Grid>
