@@ -1,0 +1,19 @@
+{
+  "name": "22c-462-planter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "date_time.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TylerYChin/22c-462-planter.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TylerYChin/22c-462-planter/issues"
+  },
+  "homepage": "https://github.com/TylerYChin/22c-462-planter#readme"
+}

@@ -40,8 +40,9 @@ def dryThresholdFromPercent(percent: float):
 
 def setPlanterPumps(val):
     # 1 = on, 0 = off
+    print(f'set planter pumps: {val}')
     msg_buf = [255, 1, val, val]
-    with serial.Serial("/dev/ttyAMA0", 9600, timeout=1) as ser:
+    with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
         response_bstr = ser.read(4)
         return response_bstr == convertToBstr(msg_buf)
@@ -50,27 +51,33 @@ def setPlanterPumps(val):
 def setHydroPump(val):
     # 1 = on, 0 = off
     msg_buf = [255, 2, val, val]
-    with serial.Serial("/dev/ttyAMA0", 9600, timeout=1) as ser:
+    print(f'setHydro: {val}')
+    with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
         response_bstr = ser.read(4)
         return response_bstr == convertToBstr(msg_buf)
 
 
 def setDryThreshold(val):
-    byte_arr = convertToBytes(val)
+    adjustedVal = int(dryThresholdFromPercent(val/100))
+    print(f'setting dry threshold {val} percent which is {adjustedVal}')
+    
+    byte_arr = convertToBytes(adjustedVal)
     if len(byte_arr) > 2:
         print("Number too large, must fit in 2 bytes")
         return False
     if len(byte_arr) < 2:
         byte_arr = [0] * (2 - len(byte_arr)) + byte_arr
     msg_buf = [255, 3] + byte_arr + [xorCksm(byte_arr)]
-    with serial.Serial("/dev/ttyAMA0", 9600, timeout=1) as ser:
+    with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
         response_bstr = ser.read(5)
         return response_bstr == convertToBstr(msg_buf)
 
 
 def setFlowTime(val):
+    print(f'setting flow time to {val} seconds')
+    val = val * 1000
     # flow time in ms
     byte_arr = convertToBytes(val)
     if len(byte_arr) > 4:
@@ -79,14 +86,14 @@ def setFlowTime(val):
     if len(byte_arr) < 4:
         byte_arr = [0] * (4 - len(byte_arr)) + byte_arr
     msg_buf = [255, 4] + byte_arr + [xorCksm(byte_arr)]
-    with serial.Serial("/dev/ttyAMA0", 9600, timeout=1) as ser:
+    with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write(msg_buf)
         response_bstr = ser.read(7)
         return response_bstr == convertToBstr(msg_buf)
 
 
 def getSensorValues():
-    with serial.Serial("/dev/ttyAMA0", 9600, timeout=1) as ser:
+    with serial.Serial("/dev/ttyS0", 9600, timeout=1) as ser:
         ser.write([255, 5, 1, 1])
         response_bstr = ser.read(17)
         if len(response_bstr) < 17:
@@ -103,4 +110,4 @@ def getSensorValues():
 # print(setHydroPump(False))
 # print(setDryThreshold(490))
 # print(setFlowTime(1230))
-# print(getSensorValues())
+#print(getSensorValues())

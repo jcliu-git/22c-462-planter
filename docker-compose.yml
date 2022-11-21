@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    container_name: db_container
+    build: ./db_stuff
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - my-net
+
+  hub:
+    container_name: hub_container
+    build: ./hub
+    networks:
+      - my-net
+    depends_on:                                                                                    
+      - db
+  ui:
+    container_name: ui_container
+    build: ./ui
+    ports:
+      - 3000:3000
+    networks:
+      - my-net
+    depends_on:                                                                                    
+      - db  
+
+volumes:
+  db-data:
+
+networks:
+  my-net:

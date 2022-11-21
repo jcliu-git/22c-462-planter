@@ -4,7 +4,7 @@ class Database extends Pool {
   connected: boolean = false;
   constructor() {
     super({
-      host: "localhost",
+      host: "db",
       database: "garden",
       user: "postgres",
       port: 5432,
