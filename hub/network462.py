@@ -11,7 +11,6 @@ from pathlib import Path
 from threading import Thread
 from types import AsyncGeneratorType
 from typing import Any, AsyncGenerator, Generator
-
 sys.path.append("../")
 import contract.contract as contract
 

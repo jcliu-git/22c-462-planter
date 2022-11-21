@@ -1,23 +1,22 @@
 import sys
 from pathlib import Path
 from time import sleep
+import websockets
 import asyncio
 import psycopg2
 import shutil
 import json
 import threading
-from flask import Flask, request
-from flask_cors import CORS
 
 sys.path.append("../")
 import contract.contract as contract
 from network462 import ControlHub
 import arduino.arduinoSystemClient as arduino
 
-# DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/garden"
-# conn = psycopg2.connect(DATABASE_URL)
-# conn.autocommit = True
-# curr = conn.cursor()
+#DATABASE_URL = "postgresql://postgres:postgres@db:5432/garden" #change from localhost to db to connect to database in container
+#conn = psycopg2.connect(DATABASE_URL)
+#conn.autocommit = True
+#curr = conn.cursor()
 
 
 lock = threading.Lock()
@@ -102,11 +101,9 @@ state = HubState(
     }
 )
 
-
 def insertDB(table: str, cols: str, data: str):
     print(f"INSERT INTO {table} ({cols}) VALUES({data})")
     curr.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
-    conn.commit()
 
 
 def insertMoistureLevel(message: contract.MoistureReadingMessage):
@@ -176,6 +173,52 @@ def insertTemperature(message: contract.TemperatureData):
     )
     insertDB(table, cols, values)
 
+async def _listen_websocket(websocket):
+    async for message in websocket:
+        print(message)
+        try:
+            message_dict: contract.IHubState = json.loads(message)
+            if message_dict["action"] == "fetch":
+                #print(state)
+                tempState = {"state": state.data} | {"action": "fetch"}
+                await websocket.send(json.dumps(tempState))
+            else:
+                newState = message_dict["state"]
+                # if (
+                #     newState["control"]["planterEnabled"]
+                #     != state.data["control"]["planterEnabled"]
+                # ):
+                #     arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0)
+
+                # if (
+                #     newState["control"]["hydroponicEnabled"]
+                #     != state.data["control"]["hydroponicEnabled"]
+                # ):
+                #     arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0)
+
+                # if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
+                #     arduino.setDryThreshold(newState["control"]["dryThreshold"])
+
+                # if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
+                #     arduino.setFlowTime(newState["control"]["flowTime"])
+
+                # if the water level is below 10% force pumps to be disabled
+                if (
+                    (
+                        newState["control"]["emptyResevoirHeight"]
+                        - newState["dashboard"]["waterLevel"]["distance"]
+                    )
+                    / newState["control"]["resevoirHeight"]
+                ) < 0.1:
+                    # arduino.setPlanterPumps(0)
+                    newState["control"]["planterEnabled"] = False
+                state.data = newState
+        except Exception as err:
+            print(err)
+
+async def _server_websocket():
+    async with websockets.serve(_listen_websocket, "0.0.0.0", 32133):
+        await asyncio.Future()
 
 async def handle_messages(controlHub: ControlHub):
     # asynchronous generator
@@ -245,6 +288,7 @@ async def handle_messages(controlHub: ControlHub):
 
 async def main():
     controlHub = ControlHub("0.0.0.0", 32132)
+    asyncio.create_task(_server_websocket())
     await controlHub.startServer()
 
     # create non-blocking concurrent task
@@ -277,69 +321,71 @@ async def main():
             continue
 
 
-app = Flask(__name__)
-CORS(app)
+# app = Flask(__name__)
+# CORS(app)
 
 
-@app.route("/fetch", methods=["GET"])
-def fetch():
-    ret = json.dumps(state.data, cls=contract.ContractEncoder)
-    return ret
+# @app.route("/fetch", methods=["GET"])
+# def fetch():
+#     ret = json.dumps(state.data, cls=contract.ContractEncoder)
+#     return ret
 
 
-@app.route("/update", methods=["POST"])
-def update():
-    # print(f"update request: {request.json}")
-    # newState: contract.IHubState = request.get_json()
-    try:
-        newState: contract.IHubState = request.json
+# @app.route("/update", methods=["POST"])
+# def update():
+#     # print(f"update request: {request.json}")
+#     # newState: contract.IHubState = request.get_json()
+#     try:
+#         newState: contract.IHubState = request.json
         
-        print(newState)
+#         print(newState)
 
-        lock.acquire()
+#         lock.acquire()
 
-        if (
-            newState["control"]["planterEnabled"]
-            != state.data["control"]["planterEnabled"]
-        ):
-            assert arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0) == True
+#         if (
+#             newState["control"]["planterEnabled"]
+#             != state.data["control"]["planterEnabled"]
+#         ):
+#             assert arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0) == True
 
-        if (
-            newState["control"]["hydroponicEnabled"]
-            != state.data["control"]["hydroponicEnabled"]
-        ):
-            assert arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0) == True
+#         if (
+#             newState["control"]["hydroponicEnabled"]
+#             != state.data["control"]["hydroponicEnabled"]
+#         ):
+#             assert arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0) == True
 
-        if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
-            assert arduino.setDryThreshold(newState["control"]["dryThreshold"]) == True
+#         if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
+#             assert arduino.setDryThreshold(newState["control"]["dryThreshold"]) == True
 
-        if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
-            assert arduino.setFlowTime(newState["control"]["flowTime"]) == True
+#         if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
+#             assert arduino.setFlowTime(newState["control"]["flowTime"]) == True
 
-        #if the water level is below 10% force pumps to be disabled
-        remainingWaterLevel = (
-                newState["control"]["emptyResevoirHeight"]
-                - newState["dashboard"]["waterLevel"]["distance"]
-            )
-        if (
-            remainingWaterLevel
-            / newState["control"]["resevoirHeight"]
-        ) < 0.1:
-            print(f'remaining water {remainingWaterLevel} is less than 10% of {newState["control"]["resevoirHeight"]}, disabling planter pumps')
-            assert arduino.setPlanterPumps(0) == True
-            newState["control"]["planterEnabled"] = False
+#         #if the water level is below 10% force pumps to be disabled
+#         remainingWaterLevel = (
+#                 newState["control"]["emptyResevoirHeight"]
+#                 - newState["dashboard"]["waterLevel"]["distance"]
+#             )
+#         if (
+#             remainingWaterLevel
+#             / newState["control"]["resevoirHeight"]
+#         ) < 0.1:
+#             print(f'remaining water {remainingWaterLevel} is less than 10% of {newState["control"]["resevoirHeight"]}, disabling planter pumps')
+#             assert arduino.setPlanterPumps(0) == True
+#             newState["control"]["planterEnabled"] = False
 
-        lock.release()
+#         lock.release()
 
-        state.data = newState
+#         state.data = newState
 
-        return newState
+#         return newState
 
-    except Exception as e:
-        print(e)
-        return {"Error": True}
+#     except Exception as e:
+#         print(e)
+#         return {"Error": True}
 
 
-serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
-serverThread.start()
-app.run(debug=False)
+# serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
+# serverThread.start()
+# app.run(debug=False)
+
+asyncio.run(main())
