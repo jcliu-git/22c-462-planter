@@ -1,13 +1,8 @@
 import { Box, Drawer, List, ListItem, ListItemText } from "@mui/material";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
+import { routes } from "../models/routing";
 import { Dispatch, RootState } from "../models/store";
-
-const routes: { [key: string]: string } = {
-  Dashboard: "/",
-  "Control Panel": "/control-panel",
-  // Settings: "/settings",
-};
 
 export function Navigation() {
   const drawerState = useSelector((state: RootState) => state.drawer);

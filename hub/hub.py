@@ -7,7 +7,6 @@ import psycopg2
 import shutil
 import json
 import threading
-from aiostream import stream
 
 sys.path.append("../")
 import contract.contract as contract
@@ -287,6 +286,8 @@ async def handle_messages(hub):
                                 newState["control"]["planterEnabled"] = False
                         except Exception as e:
                             arduino.errorSendingValues()
+                            arduino.setHydroPump(0)
+                            arduino.setPlanterPumps(0)
 
                         state.data = newState
 

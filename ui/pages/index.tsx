@@ -8,28 +8,10 @@ import React, { useContext, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { Dispatch } from "../models/store";
 import { TempAndLight } from "../components/tempAndLight";
-import { CleverGardenContext } from "../models/context";
 
 export default function Dashboard() {
   const dispatch = useDispatch<Dispatch>();
   const theme = useTheme<CustomTheme>();
-
-  // useEffect(() => {
-  //   dispatch.refetch.subscribeHub(5000);
-  //   dispatch.refetch.start();
-  // }, []);
-
-  // useEffect(() => {
-  //   context.socket.send(
-  //     JSON.stringify({
-  //       system: "ui",
-  //       type: "update",
-  //       data: {
-  //         hello: "world",
-  //       },
-  //     })
-  //   );
-  // });
 
   return (
     <div className={styles.container}>

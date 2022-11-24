@@ -1,4 +1,5 @@
-import { Store } from "./store";
+import { max } from "lodash";
+import { store, Store } from "./store";
 
 export const message = {
   system: "monitor",
@@ -14,33 +15,43 @@ export class Socket {
   private port: number;
   constructor(port: number = 5000) {
     this.port = port;
-    this.reconnectInterval = setInterval(() => this.connect(), 1000);
+    setTimeout(() => this.connect(), 1000);
   }
   async onMessage(message: any) {}
-  async connect() {
+  async connect(retryTimeout = 1000) {
     if (typeof window !== "undefined") {
-      this.socket = new WebSocket(`ws://localhost:${this.port}`);
+      try {
+        this.socket = new WebSocket(`ws://localhost:${this.port}`);
 
-      await new Promise((resolve) =>
-        this.socket?.addEventListener("open", resolve)
-      );
-      console.log("websocket connected");
-      clearInterval(this.reconnectInterval);
-      this.socket?.addEventListener("message", this.onMessage);
-      this.socket?.addEventListener("error", (e) => {
-        console.log(e);
-        this.socket = undefined;
-        this.onMessage = async (message) => {};
+        await new Promise((resolve) =>
+          this.socket?.addEventListener("open", resolve)
+        );
+
+        console.log("websocket connected");
         clearInterval(this.reconnectInterval);
-        this.reconnectInterval = setInterval(() => this.connect(), 1000);
-      });
-      this.socket?.addEventListener("close", (e) => {
-        console.log(e);
-        this.socket = undefined;
-        this.onMessage = async (message) => {};
-        clearInterval(this.reconnectInterval);
-        this.reconnectInterval = setInterval(() => this.connect(), 1000);
-      });
+        this.bindToStore(store);
+
+        this.socket?.addEventListener("message", this.onMessage);
+        this.socket?.addEventListener("error", (e) => {
+          console.log(e);
+          this.socket = undefined;
+          this.onMessage = async (message) => {};
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = setInterval(() => this.connect(), 1000);
+        });
+        this.socket?.addEventListener("close", (e) => {
+          console.log(e);
+          this.socket = undefined;
+          this.onMessage = async (message) => {};
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = setInterval(() => this.connect(), 1000);
+        });
+      } catch (e) {
+        setTimeout(
+          () => this.connect(max([retryTimeout * 2, 5 * 60 * 1000])),
+          1000
+        );
+      }
     }
   }
   async waitForConnection(interval = 1000) {

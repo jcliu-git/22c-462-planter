@@ -40,15 +40,16 @@ export default function ControlPanel() {
           direction="column"
           spacing={theme.spacing(3)}
           wrap="nowrap"
-          xs={6}
+          sm={12}
+          md={6}
         >
           <Grid item container xs={12} spacing={theme.spacing(3)}>
-            <Grid item>
+            <Grid item xs={6}>
               <Card
                 onClick={() => dispatch.hub.togglePlanter()}
                 sx={{
                   cursor: "pointer",
-                  width: 200,
+                  width: "100%",
                   height: 200,
                   display: "flex",
                   justifyContent: "center",
@@ -71,12 +72,12 @@ export default function ControlPanel() {
                 </Typography>
               </Card>
             </Grid>
-            <Grid item>
+            <Grid item xs={6}>
               <Card
                 onClick={() => dispatch.hub.toggleHydroponic()}
                 sx={{
                   cursor: "pointer",
-                  width: 200,
+                  width: "100%",
                   height: 200,
                   display: "flex",
                   justifyContent: "center",
@@ -101,24 +102,28 @@ export default function ControlPanel() {
             </Grid>
           </Grid>
           <Grid item container xs={12} spacing={theme.spacing(3)}>
-            <Grid item>
+            <Grid item xs={12}>
               <Card
                 sx={{
                   padding: theme.spacing(3),
-                  width: 424,
+                  width: "100%",
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "start",
                 }}
               >
-                <List>
+                <List
+                  sx={{
+                    width: "100%",
+                  }}
+                >
                   <ListItem>
                     <Stack sx={{ width: "100%" }}>
                       <ListItemText primary="Moisture Threshold" />
                       <Slider
                         min={0}
                         max={100}
-                        defaultValue={30}
+                        defaultValue={60}
                         value={_dryThreshold}
                         valueLabelDisplay="auto"
                         valueLabelFormat={(value) => `${value}%`}
@@ -143,9 +148,9 @@ export default function ControlPanel() {
                     <Stack sx={{ width: "100%" }}>
                       <Typography>Flow Time</Typography>
                       <Slider
-                        min={0}
-                        max={100}
-                        defaultValue={30}
+                        min={1}
+                        max={30}
+                        defaultValue={3}
                         value={_flowTime}
                         valueLabelDisplay="auto"
                         valueLabelFormat={(value) => `${value} seconds`}
@@ -172,8 +177,8 @@ export default function ControlPanel() {
           </Grid>
         </Grid>
 
-        <Grid item xs={6}>
-          <Card sx={{ padding: theme.spacing(3) }}>
+        <Grid item sm={12} md={6}>
+          <Card sx={{ padding: theme.spacing(3), height: "100%" }}>
             <Stack spacing={theme.spacing(3)}>
               <Typography variant="h5" sx={{ textAlign: "center" }}>
                 Calibrate Water Level
@@ -203,6 +208,7 @@ export default function ControlPanel() {
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
+                      padding: theme.spacing(2),
                       background: hub.control.calibrating
                         ? theme.palette.success.main
                         : theme.palette.info.main,
@@ -217,7 +223,9 @@ export default function ControlPanel() {
                         textAlign: "center",
                       }}
                     >
-                      Calibrate
+                      {hub.control.calibrating
+                        ? "Calibrate"
+                        : "Stop Calibration"}
                     </Typography>
                   </Card>
                 </Grid>

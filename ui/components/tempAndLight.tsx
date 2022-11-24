@@ -17,6 +17,14 @@ export function TempAndLight() {
   );
   const light = useSelector((state: RootState) => state.hub.dashboard.light);
 
+  let brightness = (light.luminosity / 30000) * 100;
+  if (brightness > 100) {
+    brightness = 100;
+  }
+  if (brightness < 0) {
+    brightness = 0;
+  }
+
   return (
     <Card
       sx={{
@@ -29,6 +37,7 @@ export function TempAndLight() {
         spacing={2}
         alignItems="center"
         justifyContent="space-between"
+        height="100%"
       >
         <Grid item xs={6}>
           <Box>
@@ -44,10 +53,16 @@ export function TempAndLight() {
             </Typography>
           </Box>
         </Grid>
-        <Grid item xs={6}>
-          <Box>
-            <Image src="/sun.png" alt="sun" width={100} height={100} />
-          </Box>
+        <Grid item xs={6} textAlign="center">
+          <Image
+            src="/sun.svg"
+            alt="sun"
+            width={100}
+            height={100}
+            style={{
+              filter: `invert(88%) sepia(100%) saturate(668%) hue-rotate(346deg) brightness(${brightness}%)`,
+            }}
+          />
         </Grid>
       </Grid>
     </Card>

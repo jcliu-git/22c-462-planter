@@ -6,6 +6,7 @@ import { Subscription } from "rxjs";
 import { Dispatch, RootState, store } from "../models/store";
 import { calcColor } from "../util/color";
 import { useSelector, useDispatch } from "react-redux";
+import { mix } from "tinycolor2";
 
 export function MoistureSensors(): JSX.Element {
   const theme = useTheme<Theme>();
@@ -29,7 +30,7 @@ export function MoistureSensors(): JSX.Element {
     sensor8,
   } = moisture;
 
-  const sensors = [
+  let sensors = [
     sensor1,
     sensor2,
     sensor3,
@@ -39,6 +40,7 @@ export function MoistureSensors(): JSX.Element {
     sensor7,
     sensor8,
   ];
+
   return (
     <Card
       sx={{
@@ -71,7 +73,11 @@ export function MoistureSensors(): JSX.Element {
                     borderRadius: "100%",
                     width: "32px",
                     height: "32px",
-                    backgroundColor: calcColor(min, max, sensors[index]),
+                    backgroundColor: mix(
+                      "#6A3E37",
+                      "#3993DD",
+                      ((sensors[index] - min) / (max - min)) * 100
+                    ).toHexString(),
                   }}
                 ></Box>
               </Box>
@@ -99,7 +105,11 @@ export function MoistureSensors(): JSX.Element {
                     borderRadius: "100%",
                     width: "32px",
                     height: "32px",
-                    backgroundColor: calcColor(min, max, sensors[index]),
+                    backgroundColor: mix(
+                      "#6A3E37",
+                      "#3993DD",
+                      ((sensors[index] - min) / (max - min)) * 100
+                    ).toHexString(),
                   }}
                 ></Box>
               </Box>

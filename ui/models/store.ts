@@ -495,10 +495,6 @@ export const store = init({
   models,
 });
 
-if (typeof window !== "undefined") {
-  socket.bindToStore(store);
-}
-
 export type Store = typeof store;
 export type Dispatch = RematchDispatch<RootModel>;
 export type RootState = RematchRootState<RootModel>;

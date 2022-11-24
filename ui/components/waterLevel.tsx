@@ -12,6 +12,19 @@ export function WaterLevel() {
   const controlState = useSelector((state: RootState) => state.hub.control);
   const dispatch = useDispatch<Dispatch>();
 
+  let waterLevelPercent =
+    ((controlState.emptyResevoirHeight - waterLevelState.distance) /
+      controlState.resevoirHeight) *
+    100;
+
+  if (waterLevelPercent < 0) {
+    waterLevelPercent = 0;
+  }
+
+  if (waterLevelPercent > 100) {
+    waterLevelPercent = 100;
+  }
+
   return (
     <Paper
       sx={{
@@ -37,11 +50,8 @@ export function WaterLevel() {
           id="water"
           sx={{
             height: "100%",
-            width: `${
-              ((controlState.emptyResevoirHeight - waterLevelState.distance) /
-                controlState.resevoirHeight) *
-              100
-            }%`,
+            width: `${waterLevelPercent}%`,
+
             background: theme.palette.secondary.main,
           }}
         ></Box>
