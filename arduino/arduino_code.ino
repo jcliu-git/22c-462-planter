@@ -13,17 +13,23 @@
 #define FLOW_TIME_MSG 4
 #define MEASURE_MSG 5
 
-// EEPROM locations
+// settings EEPROM locations
 #define PLANTER_ENABLE 0
 #define HYDRO_ENABLE 1
 #define DRY_THRESHOLD 2
 #define FLOW_TIME 4
 
-// pumping state variables
+// pumping settings variables
 bool planter_enable = false;
 bool hydro_enable = false;
 short dry_threshold = 480;
-long flow_time = 2000;
+long flow_time = 500;
+
+// pump control state vars
+bool pump_actives[] = {false, false, false, false};
+unsigned long pump_starts[] = {0,0,0,0};
+
+unsigned long start = 0;
 
 void setup() {
   Serial1.begin(9600);
@@ -42,7 +48,22 @@ void setup() {
   Serial.print(" D: ");
   Serial.print(dry_threshold);  
   Serial.print(" F: ");
-  Serial.println(flow_time);  
+  Serial.println(flow_time);
+  
+  pinMode(2, OUTPUT);
+  digitalWrite(3, hydro_enable ? HIGH : LOW); // set hydroponics pump
+
+  // initialize planter pumps and set low
+  pinMode(3, OUTPUT);
+  digitalWrite(3, LOW);
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW);
+  pinMode(5, OUTPUT);
+  digitalWrite(5, LOW);
+  pinMode(6, OUTPUT);
+  digitalWrite(6, LOW);
+
+  unsigned long start = millis();  
 }
 
 // serial state vars
@@ -51,9 +72,16 @@ byte current_type = NULL_MSG;
 unsigned char* msg_buf = nullptr;
 size_t msg_counter = 0;
 
-void loop() {
-  // FIXME: add pump control code
+void loop() { 
+  // update hydroponics pump
+  digitalWrite(3, hydro_enable ? HIGH : LOW);
 
+  // update planter pumps
+  updatePump(0, A0, 3);
+  updatePump(1, A1, 4);
+  updatePump(2, A2, 5);
+  updatePump(3, A3, 6);  
+  
   // serial handling state machine
   if (Serial1.available() > 0) {
     // read a byte
@@ -180,4 +208,23 @@ unsigned short bytesToShort(unsigned char* buf) {
 
 unsigned long bytesToLong(unsigned char* buf) {
   return buf[0] * 0x10000u + buf[1] * 0x1000u + buf[2] * 0x100u + buf[3];
+}
+
+void updatePump(size_t pump_no, byte sensor_pin_no, byte pump_pin_no) {
+  // pump active state
+  if(pump_actives[pump_no]) {
+    if(millis() - pump_starts[pump_no] > flow_time*2) {
+      pump_actives[pump_no] = false;     
+    }
+    else if(millis() - pump_starts[pump_no] > flow_time) {
+      digitalWrite(pump_pin_no, LOW);
+    }    
+  }
+  
+  // pump inactive state  
+  else if(planter_enable && (analogRead(sensor_pin_no) > dry_threshold)) { 
+    digitalWrite(pump_pin_no, HIGH);
+    pump_starts[pump_no] = millis();
+    pump_actives[pump_no] = true;    
+  }
 }
