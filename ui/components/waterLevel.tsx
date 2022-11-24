@@ -12,10 +12,13 @@ export function WaterLevel() {
   const controlState = useSelector((state: RootState) => state.hub.control);
   const dispatch = useDispatch<Dispatch>();
 
-  let waterLevelPercent =
-    ((controlState.emptyResevoirHeight - waterLevelState.distance) /
-      controlState.resevoirHeight) *
-    100;
+  let waterLevelPercent = 0;
+  if (controlState.resevoirHeight != 0) {
+    waterLevelPercent =
+      ((controlState.emptyResevoirHeight - waterLevelState.distance) /
+        controlState.resevoirHeight) *
+      100;
+  }
 
   if (waterLevelPercent < 0) {
     waterLevelPercent = 0;
@@ -44,14 +47,28 @@ export function WaterLevel() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
+          position: "relative",
         }}
       >
+        <Typography
+          display="block"
+          position="absolute"
+          top="50%"
+          left="50%"
+          sx={{
+            color: "white",
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          {waterLevelPercent}%
+        </Typography>
         <Box
           id="water"
           sx={{
             height: "100%",
             width: `${waterLevelPercent}%`,
-
             background: theme.palette.secondary.main,
           }}
         ></Box>

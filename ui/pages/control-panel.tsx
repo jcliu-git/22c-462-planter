@@ -188,22 +188,17 @@ export default function ControlPanel() {
                 calibrating. Once the resevoir is full click the stop button to
                 finish calibrating.
               </Typography>
-              <Grid container spacing={theme.spacing(3)}>
+              <Grid container>
                 <Grid item xs={6}>
                   <Card
                     onClick={() => {
-                      if (!hub.control.calibrating) {
-                        dispatch.refetch.subscribeHub(1000);
-                      } else {
-                        dispatch.refetch.subscribeHub(5000);
-                      }
                       dispatch.hub.toggleCalibration(
                         hub.dashboard.waterLevel.distance
                       );
                     }}
                     sx={{
                       cursor: "pointer",
-                      width: 200,
+                      width: "100%",
                       height: 200,
                       display: "flex",
                       justifyContent: "center",
@@ -233,7 +228,7 @@ export default function ControlPanel() {
                   <Box
                     sx={{
                       cursor: "pointer",
-                      width: 200,
+                      width: "100%",
                       height: 200,
                       display: "flex",
                       justifyContent: "center",

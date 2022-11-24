@@ -49,9 +49,41 @@ export function MoistureSensors(): JSX.Element {
         width: "100%",
       }}
     >
-      <Typography variant="h6" sx={{ marginBottom: theme.spacing(1) }}>
-        Moisture Sensor Readings
-      </Typography>
+      <Grid
+        container
+        spacing={3}
+        wrap="nowrap"
+        justifyContent="space-between"
+        alignItems="center"
+      >
+        <Grid item xs={6}>
+          <Typography variant="h6" sx={{ marginBottom: theme.spacing(1) }}>
+            Moisture Sensor Readings
+          </Typography>
+        </Grid>
+        <Grid item xs={6}>
+          <Grid
+            container
+            justifyContent="space-between"
+            wrap="nowrap"
+            sx={{ mb: theme.spacing(1) }}
+          >
+            <Grid item>
+              <Typography variant="body2">Dry</Typography>
+            </Grid>
+            <Grid item>
+              <Typography variant="body2">Wet</Typography>
+            </Grid>
+          </Grid>
+          <Box
+            sx={{
+              height: theme.spacing(2),
+              background:
+                "linear-gradient(90deg, rgba(106,62,55,1) 0%, rgba(57,147,221,1) 100%)",
+            }}
+          />
+        </Grid>
+      </Grid>
       <Grid container spacing={1}>
         <Grid item xs={12}>
           <Box
