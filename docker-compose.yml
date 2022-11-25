@@ -24,15 +24,15 @@ services:
       - my-net
     depends_on:                                                                                    
       - db
-  ui:
-    container_name: ui_container
-    build: ./ui
-    ports:
-      - 3000:3000
-    networks:
-      - my-net
-    depends_on:                                                                                    
-      - db  
+  # ui:
+  #   container_name: ui_container
+  #   build: ./ui
+  #   ports:
+  #     - 3000:3000
+  #   networks:
+  #     - my-net
+  #   depends_on:                                                                                    
+  #     - db  
 
 volumes:
   db-data:

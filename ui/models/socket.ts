@@ -1,14 +1,6 @@
 import { max } from "lodash";
 import { store, Store } from "./store";
 
-export const message = {
-  system: "monitor",
-  type: "water_level",
-  data: {
-    distance: 3,
-  },
-};
-
 export class Socket {
   private socket?: WebSocket;
   private reconnectInterval?: ReturnType<typeof setInterval>;

@@ -3,22 +3,37 @@ from pathlib import Path
 from time import sleep
 import websockets
 import asyncio
+
 import psycopg2
+from psycopg2 import pool
 import shutil
 import json
 import threading
+import logging
+from datetime import datetime
+from dotenv import dotenv_values
+
 
 sys.path.append("../")
 import contract.contract as contract
 from network462 import ControlHub
 import arduino.arduinoSystemClient as arduino
 
-# DATABASE_URL = "postgresql://postgres:postgres@db:5432/garden" #change from localhost to db to connect to database in container
-# conn = psycopg2.connect(DATABASE_URL)
-# conn.autocommit = True
-# curr = conn.cursor()
+Path("logs").mkdir(parents=True, exist_ok=True)
+logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_hub.log"
+logpath = f"logs/{logname}"
+logging.basicConfig(filename=logpath, encoding="utf-8")
 
 
+config = dotenv_values(".env")
+db = psycopg2.pool.ThreadedConnectionPool(
+    1,
+    20,
+    config["DATABASE_URL"],
+)
+
+
+# lock to prevent simultaneous writes to arduino
 lock = threading.Lock()
 
 
@@ -28,8 +43,6 @@ class HubState:
     def __init__(self, data: contract.IHubState = contract.DefaultHubState):
         self.data = data
 
-
-# pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DATABASE_URL)
 
 rows = {
     "light": ["id", "luminosity", "timestamp"],
@@ -62,49 +75,20 @@ def parseRows(cursor, table: str):
     return [omit(row, "id") for row in result]
 
 
-def fetchDashboardState():
-    # get the state from the database
-    try:
-        curr.execute("SELECT * FROM light order by id desc limit 1")
-        light = parseRows(curr, "light")
-
-        curr.execute("SELECT * FROM moisture_level order by id desc limit 1")
-        moisture = parseRows(curr, "moisture_level")
-
-        curr.execute("SELECT * FROM temperature order by id desc limit 1")
-        temperature = parseRows(curr, "temperature")
-
-        curr.execute("SELECT * FROM water_level order by id desc limit 1")
-        water = parseRows(curr, "water_level")
-
-        curr.execute("SELECT * FROM photos order by id desc limit 10")
-        photos = parseRows(curr, "photos")
-
-        return {
-            "light": light[0],
-            "moisture": moisture[0],
-            "temperature": temperature[0],
-            "waterLevel": water[0],
-            "photos": photos,
-        }
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-
-        return False
-
-
 state = HubState(
     {
-        "dashboard": fetchDashboardState() or contract.DefaultHubState["dashboard"],
+        "dashboard": contract.DefaultHubState["dashboard"],
         "control": contract.DefaultHubState["control"],
     }
 )
 
 
 def insertDB(table: str, cols: str, data: str):
-    print(f"INSERT INTO {table} ({cols}) VALUES({data})")
+    conn = db.getconn()
+    curr = conn.cursor()
     curr.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
+
+    db.putconn(conn)
 
 
 def insertMoistureLevel(message: contract.MoistureReadingMessage):
@@ -148,23 +132,6 @@ def insertWaterLevel(message: contract.WaterLevelData):
     insertDB(table, cols, values)
 
 
-def insertPhoto(message: contract.PhotoCaptureMessage):
-    table = "photos"
-    cols = "timestamp, filepath, width, height"
-    message.data["timestamp"] = f"timestamp '{message.data['timestamp']}'"
-    message.data["filepath"] = f"'{message.data['filepath']}'"
-    values = ",".join(
-        str(x)
-        for x in [
-            message.data["timestamp"],
-            message.data["filepath"],
-            message.data["width"],
-            message.data["height"],
-        ]
-    )
-    insertDB(table, cols, values)
-
-
 def insertTemperature(message: contract.TemperatureData):
     table = "temperature"
     cols = "timestamp, temperature"
@@ -176,43 +143,51 @@ def insertTemperature(message: contract.TemperatureData):
 
 
 async def handle_messages(hub):
-    # asynchronous generator
     stream = hub.stream()
+    temperature = 10
+    light = 10
+    water_level = 3
+
     async for message in stream:
-        # do something based on what message you get
+        # do something based on the message you get
         try:
-            # TODO: remove print statements below when everything's tested
-            # print(message)
 
             if message.system == contract.System.MONITORING:
                 if message.type == contract.MessageType.TEMPERATURE:
-                    # insertTemperature(message)
                     state.data["dashboard"]["temperature"] = message.data
                     websockets.broadcast(
                         hub.websockets.values(), json.dumps(state.data)
                     )
 
-                    # print(message)
+                    if temperature <= 0:
+                        insertTemperature(message)
+                        temperature = 10
+                    else:
+                        temperature -= 1
+
                 if message.type == contract.MessageType.LIGHT_READING:
-                    # insertLight(message)
                     state.data["dashboard"]["light"] = message.data
                     websockets.broadcast(
                         hub.websockets.values(), json.dumps(state.data)
                     )
-                    # print(message)
+
+                    if light <= 0:
+                        insertLight(message)
+                        light = 10
+                    else:
+                        light -= 1
+
                 if message.type == contract.MessageType.WATER_LEVEL:
-                    # insertWaterLevel(message)
                     state.data["dashboard"]["waterLevel"] = message.data
                     websockets.broadcast(
                         hub.websockets.values(), json.dumps(state.data)
                     )
-                    # print(message)
-                if message.type == contract.MessageType.MOISTURE_READING:
-                    # insertMoistureLevel(message)
-                    state.data["dashboard"]["moisture"] = message.data
-                    websockets.broadcast(
-                        hub.websockets.values(), json.dumps(state.data)
-                    )
+
+                    if water_level <= 0:
+                        insertWaterLevel(message)
+                        water_level = 3
+                    else:
+                        water_level -= 1
 
             if message.system == contract.System.CAMERA:
                 if message.type == contract.MessageType.PHOTO_CAPTURED:
@@ -224,18 +199,16 @@ async def handle_messages(hub):
                         "filename": str
                     }
                     """
+
                     filename = message.data["filename"]
+                    type = message.data["phototype"]
                     print("processing file: " + filename)
-                    path = "../ui/public/"
-                    # if message.data["data"]["phototype"] == contract.PhotoType.PERIODIC:
-                    #     path += "periodic/"
-                    # elif message.data["data"]["phototype"] == contract.PhotoType.MOTION:
-                    #     path += "motion/"
+                    path = f"../ui/public/camera/{type}/"
+
                     Path(path).mkdir(parents=True, exist_ok=True)
+
                     print("placing file here: " + path + filename)
                     shutil.move("temp/" + filename, path + filename)
-                    photocaptureMessage = contract.PhotoCaptureMessage.fromJson(message)
-                    insertPhoto(photocaptureMessage)
 
             if message.system == contract.System.UI:
                 if message.type == contract.MessageType.HUB_STATE:
@@ -282,8 +255,9 @@ async def handle_messages(hub):
                                 )
                                 / newState["control"]["resevoirHeight"]
                             ) < 0.1:
-                                # arduino.setPlanterPumps(0)
+                                arduino.setPlanterPumps(0)
                                 newState["control"]["planterEnabled"] = False
+
                         except Exception as e:
                             arduino.errorSendingValues()
                             arduino.setHydroPump(0)
@@ -296,7 +270,7 @@ async def handle_messages(hub):
 
         except Exception as err:
             print(err)
-            print("something broke")
+            logging.error(err)
 
 
 async def main():
@@ -305,14 +279,34 @@ async def main():
 
     asyncio.create_task(handle_messages(controlHub))
 
+    fiveMinutes = 60 * 5
+
     # handle synchronous reads from the arduino
     while True:
         try:
             await asyncio.sleep(5)
 
+            fiveMinutes -= 5
+
             lock.acquire()
             moisture_readings = arduino.getSensorValues()
-            print(moisture_readings)
+            lock.release()
+
+            if fiveMinutes <= 0:
+                insertMoistureLevel(
+                    contract.MoistureReadingMessage(
+                        moisture_readings[0],
+                        moisture_readings[1],
+                        moisture_readings[2],
+                        moisture_readings[3],
+                        moisture_readings[4],
+                        moisture_readings[5],
+                        moisture_readings[6],
+                        moisture_readings[7],
+                        moisture_readings[8],
+                    )
+                )
+                fiveMinutes = 60 * 5
 
             if moisture_readings:
                 state.data["dashboard"]["moisture"] = {
@@ -326,77 +320,13 @@ async def main():
                     "sensor8": moisture_readings[7],
                 }
 
-        except:
+        except Exception as e:
+            print(e)
+            logging.error(e)
             continue
         finally:
             lock.release()
 
 
-# app = Flask(__name__)
-# CORS(app)
-
-
-# @app.route("/fetch", methods=["GET"])
-# def fetch():
-#     ret = json.dumps(state.data, cls=contract.ContractEncoder)
-#     return ret
-
-
-# @app.route("/update", methods=["POST"])
-# def update():
-#     # print(f"update request: {request.json}")
-#     # newState: contract.IHubState = request.get_json()
-#     try:
-#         newState: contract.IHubState = request.json
-
-#         print(newState)
-
-#         lock.acquire()
-
-#         if (
-#             newState["control"]["planterEnabled"]
-#             != state.data["control"]["planterEnabled"]
-#         ):
-#             assert arduino.setPlanterPumps(1 if newState["control"]["planterEnabled"] else 0) == True
-
-#         if (
-#             newState["control"]["hydroponicEnabled"]
-#             != state.data["control"]["hydroponicEnabled"]
-#         ):
-#             assert arduino.setHydroPump(1 if newState["control"]["hydroponicEnabled"] else 0) == True
-
-#         if newState["control"]["dryThreshold"] != state.data["control"]["dryThreshold"]:
-#             assert arduino.setDryThreshold(newState["control"]["dryThreshold"]) == True
-
-#         if newState["control"]["flowTime"] != state.data["control"]["flowTime"]:
-#             assert arduino.setFlowTime(newState["control"]["flowTime"]) == True
-
-#         #if the water level is below 10% force pumps to be disabled
-#         remainingWaterLevel = (
-#                 newState["control"]["emptyResevoirHeight"]
-#                 - newState["dashboard"]["waterLevel"]["distance"]
-#             )
-#         if (
-#             remainingWaterLevel
-#             / newState["control"]["resevoirHeight"]
-#         ) < 0.1:
-#             print(f'remaining water {remainingWaterLevel} is less than 10% of {newState["control"]["resevoirHeight"]}, disabling planter pumps')
-#             assert arduino.setPlanterPumps(0) == True
-#             newState["control"]["planterEnabled"] = False
-
-#         lock.release()
-
-#         state.data = newState
-
-#         return newState
-
-#     except Exception as e:
-#         print(e)
-#         return {"Error": True}
-
-
-# serverThread = threading.Thread(target=asyncio.run, args=(main(),), daemon=True)
-# serverThread.start()
-# app.run(debug=False)
-
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

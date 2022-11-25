@@ -4,8 +4,9 @@ examples/
 **/.mypy_cache
 **/node_modules
 **/logs
-ui/public/motion
-ui/public/periodic
+ui/public/camera
 hub/temp
 ui/package-lock.json
 .vercel
+**/*.env
+.pytest_cache

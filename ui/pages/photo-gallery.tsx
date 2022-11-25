@@ -11,13 +11,10 @@ import { range } from "lodash";
 import Image from "next/image";
 import React from "react";
 import { ExpandMore } from "@mui/icons-material";
+import { useDispatch, useSelector } from "react-redux";
+import { IPhotoData, RootState } from "../models/store";
 
-interface PhotoDetails {
-  img: string;
-  title: string;
-}
-
-export function ResponsivePhotos({ photos }: { photos: PhotoDetails[] }) {
+export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
   const theme = useTheme<CustomTheme>();
 
   return (
@@ -40,8 +37,8 @@ export function ResponsivePhotos({ photos }: { photos: PhotoDetails[] }) {
             }}
           >
             <Image
-              src={`${photo.img}?w=162&auto=format`}
-              alt={photo.title}
+              src={`${photo.filepath}?w=162&auto=format`}
+              alt={photo.filepath}
               loading="lazy"
               width={720}
               height={480}
@@ -62,7 +59,7 @@ export function TimelapsedPhotos({
   photos,
   interval,
 }: {
-  photos: PhotoDetails[];
+  photos: IPhotoData[];
   interval: number;
 }) {
   const theme = useTheme<CustomTheme>();
@@ -94,8 +91,8 @@ export function TimelapsedPhotos({
           }}
         >
           <Image
-            src={`${photos[photoIndex].img}?w=162&auto=format`}
-            alt={photos[photoIndex].title}
+            src={`${photos[photoIndex].filepath}?w=162&auto=format`}
+            alt={photos[photoIndex].filepath}
             loading="lazy"
             width={720}
             height={480}
@@ -112,11 +109,13 @@ export function TimelapsedPhotos({
 }
 
 export default function PhotosPage() {
-  let photoData: PhotoDetails[] = range(20).map((i) => ({
-    img: `https://source.unsplash.com/random/720x480?sig=${i}`,
-    title: `Image ${i}`,
-  }));
+  // let photoData: PhotoDetails[] = range(20).map((i) => ({
+  //   img: `https://source.unsplash.com/random/720x480?sig=${i}`,
+  //   title: `Image ${i}`,
+  // }));
   const [timeLapseEnabled, setTimeLapseEnabled] = React.useState(false);
+
+  const photos = useSelector((state: RootState) => state.gallery.photos);
 
   const theme = useTheme<CustomTheme>();
 
@@ -135,7 +134,9 @@ export default function PhotosPage() {
           Time Lapse
         </AccordionSummary>
         <AccordionDetails>
-          <TimelapsedPhotos photos={photoData} interval={500} />
+          {photos.timelapse.length ? (
+            <TimelapsedPhotos photos={photos.timelapse} interval={500} />
+          ) : null}
         </AccordionDetails>
       </Accordion>
       <Accordion>
@@ -147,7 +148,9 @@ export default function PhotosPage() {
           Visitors
         </AccordionSummary>
         <AccordionDetails>
-          <ResponsivePhotos photos={photoData} />
+          {photos.visitors.length ? (
+            <VisitorPhotos photos={photos.visitors} />
+          ) : null}
         </AccordionDetails>
       </Accordion>
     </Box>

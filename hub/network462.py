@@ -72,7 +72,7 @@ class ControlHub(object):
     async def _listen(self, reader, writer):
         data = await reader.readline()
         system_name = data.decode("utf-8")[:-1]
-        print("client:", system_name)
+        print(f"Client {system_name} has connected.")
         self._clients[system_name] = [reader, writer]
         while True:
             # print("waiting for data")
@@ -87,7 +87,7 @@ class ControlHub(object):
                 payload = json.loads(data)
                 if payload["identifier"] == contract.MessageIdentifier.FILE:
                     filepath = "temp/" + payload["data"]["filename"]
-                    logging.info("File: %s", filepath)
+                    # logging.info("File: %s", filepath)
 
                     # create directory if doesn't exist
                     Path("temp/").mkdir(parents=True, exist_ok=True)
@@ -102,7 +102,7 @@ class ControlHub(object):
                         writer.write(b"\n")  # acknowledgement
                         await writer.drain()
                         writer.close()
-                        print("File transfer done. Removing", system_name)
+                        # print("File transfer done. Removing", system_name)
                         del self._clients[system_name]
                         break
                 else:
@@ -139,6 +139,7 @@ class ControlHub(object):
                 yield contract.Message.fromJson(queueItem)
             except Exception as err:
                 print("Error in stream: ", err)
+                logging.error(err)
                 continue
 
 
@@ -250,7 +251,7 @@ class Client(object):
                 payload = contract.FileMessage(self._system, filename, file_size, data)
                 # print(payload)
                 jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
-                print(jsonpayload)
+                # print(jsonpayload)
                 writer.write(bytes(jsonpayload, encoding="utf-8"))
                 await writer.drain()
 
@@ -290,7 +291,7 @@ class Client(object):
                 # send file info
                 # print(payload)
                 jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
-                print(jsonpayload)
+                # print(jsonpayload)
                 writer.write(bytes(jsonpayload, encoding="utf-8"))
                 await writer.drain()
 
@@ -370,8 +371,8 @@ class CameraClient(Client):
     def __init__(
         self,
         system: contract.System = contract.System.CAMERA,
-        host: str = "127.0.0.1",
-        port: int = 32132,
+        host: str = contract.NETWORK_HOST,
+        port: int = contract.NETWORK_PORT,
     ):
         super().__init__(system, host, port)
 

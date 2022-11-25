@@ -1,10 +1,6 @@
-import Axios from "axios";
+import axios from "axios";
 import { socket } from "./socket";
-import { IHubState } from "./store";
-
-const axios = Axios.create({
-  baseURL: "http://127.0.0.1:5000",
-});
+import { IHubState, IPhotoData } from "./store";
 
 export namespace api {
   export namespace hub {
@@ -20,6 +16,16 @@ export namespace api {
         data: state,
         identifier: "data",
       });
+    }
+  }
+  export namespace camera {
+    export async function timelapseUrls(): Promise<IPhotoData[]> {
+      let result = await axios.get("/api/photos/timelapse");
+      return result.data;
+    }
+    export async function visitorUrls(): Promise<IPhotoData[]> {
+      let result = await axios.get("/api/photos/visitors");
+      return result.data;
     }
   }
 }

@@ -53,7 +53,7 @@ export function Masthead() {
                 }}
               >
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     dispatch.drawer.close();
                     router.push(routes[text]);
                   }}

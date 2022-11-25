@@ -5,7 +5,7 @@ import {
   RematchRootState,
 } from "@rematch/core";
 import { Models } from "@rematch/core";
-import { range, uniq } from "lodash";
+import _, { last, once, range, uniq } from "lodash";
 import { useEffect } from "react";
 import { api } from "./api";
 import { socket } from "./socket";
@@ -104,6 +104,52 @@ export function PhotoData(data?: IPhotoData): IPhotoData {
     }
   );
 }
+
+export interface IPhotoGalleryState {
+  photos: {
+    timelapse: IPhotoData[];
+    visitors: IPhotoData[];
+  };
+}
+
+export const photoGalleryState = createModel<RootModel>()({
+  state: {
+    photos: {
+      timelapse: [],
+      visitors: [],
+    },
+  } as IPhotoGalleryState,
+  reducers: {
+    replace(state, payload: IPhotoGalleryState) {
+      return payload;
+    },
+  },
+  effects: (dispatch) => ({
+    async fetch() {
+      let [timelapse, visitors] = await Promise.all([
+        api.camera.timelapseUrls(),
+        api.camera.visitorUrls(),
+      ]);
+
+      const state = store.getState();
+
+      dispatch.gallery.replace({
+        photos: {
+          timelapse: _.chain(state.gallery.photos.timelapse)
+            .concat(timelapse)
+            .uniqBy((p) => p.timestamp)
+            .sortBy((p) => p.timestamp)
+            .value(),
+          visitors: _.chain(state.gallery.photos.visitors)
+            .concat(visitors)
+            .uniqBy((p) => p.timestamp)
+            .sortBy((p) => p.timestamp)
+            .value(),
+        },
+      });
+    },
+  }),
+});
 
 export interface ITemperatureData {
   timestamp: string;
@@ -319,11 +365,13 @@ export const hubState = createModel<RootModel>()({
 export interface RootModel extends Models<RootModel> {
   drawer: typeof drawerState;
   hub: typeof hubState;
+  gallery: typeof photoGalleryState;
 }
 
 export const models: RootModel = {
   drawer: drawerState,
   hub: hubState,
+  gallery: photoGalleryState,
 };
 
 export interface IHubState {
@@ -334,6 +382,19 @@ export interface IHubState {
 
 export const store = init({
   models,
+});
+
+export const initStore = once(async function () {
+  if (typeof window !== "undefined") {
+    try {
+      await store.dispatch.gallery.fetch();
+    } catch (e) {
+      console.error(e);
+    }
+    setInterval(() => {
+      store.dispatch.gallery.fetch();
+    }, 5 * 60 * 1000);
+  }
 });
 
 export type Store = typeof store;

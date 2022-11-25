@@ -2,7 +2,7 @@ import "../styles/globals.css";
 import { CssBaseline, NoSsr, ThemeProvider } from "@mui/material";
 import theme from "../styles/theme";
 import { Provider, useDispatch } from "react-redux";
-import { Dispatch, store } from "../models/store";
+import { Dispatch, initStore, store } from "../models/store";
 import { Navigation } from "../components/navigation";
 import { Masthead } from "../components/masthead";
 import { useRouter } from "next/router";
@@ -11,7 +11,7 @@ import { CleverGardenContext } from "../models/context";
 
 export default function App({ Component, pageProps }: any) {
   const router = useRouter();
-
+  initStore();
   return (
     <NoSsr>
       <ThemeProvider theme={theme}>
