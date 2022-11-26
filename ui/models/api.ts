@@ -6,7 +6,7 @@ import { IAnalyticsState, IHubState, IPhotoData } from "./store";
 export namespace api {
   export namespace hub {
     export async function fetch(): Promise<IHubState> {
-      let result = await axios.get("/fetch");
+      let result = await axios.get("/api/hub/fetch");
       return result.data;
     }
 

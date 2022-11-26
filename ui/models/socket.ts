@@ -21,6 +21,7 @@ export class Socket {
 
         console.log("websocket connected");
         clearInterval(this.reconnectInterval);
+        store.dispatch.hub.websocketConnected();
         this.bindToStore(store);
 
         this.socket?.addEventListener("message", this.onMessage);
@@ -30,6 +31,7 @@ export class Socket {
           this.onMessage = async (message) => {};
           clearInterval(this.reconnectInterval);
           this.reconnectInterval = setInterval(() => this.connect(), 1000);
+          store.dispatch.hub.websocketDisconnected();
         });
         this.socket?.addEventListener("close", (e) => {
           console.log(e);
@@ -37,6 +39,7 @@ export class Socket {
           this.onMessage = async (message) => {};
           clearInterval(this.reconnectInterval);
           this.reconnectInterval = setInterval(() => this.connect(), 1000);
+          store.dispatch.hub.websocketDisconnected();
         });
       } catch (e) {
         setTimeout(

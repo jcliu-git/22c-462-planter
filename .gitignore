@@ -13,3 +13,4 @@ ui/package-lock.json
 .pytest_cache
 camera/temp
 ui/public/workbox-*
+ui/public/sw.*

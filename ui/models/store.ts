@@ -289,6 +289,7 @@ export const hubState = createModel<RootModel>()({
   state: {
     control: ControlState(),
     dashboard: DashboardState(),
+    websocketConnected: false,
   } as IHubState,
   reducers: {
     replace(state, payload: IHubState) {
@@ -365,10 +366,26 @@ export const hubState = createModel<RootModel>()({
       api.hub.update(newState);
       return newState;
     },
+    websocketConnected(state) {
+      return {
+        ...state,
+        websocketConnected: true,
+      };
+    },
+    websocketDisconnected(state) {
+      return {
+        ...state,
+        websocketConnected: false,
+      };
+    },
   },
   effects: (dispatch) => ({
     async fetch() {
       try {
+        // only fetch if we are not connected to the websocket
+        if (store.getState().hub.websocketConnected) {
+          return;
+        }
         let data = await api.hub.fetch();
         dispatch.hub.replace(data);
       } catch (e) {
@@ -395,7 +412,10 @@ export const models: RootModel = {
 export interface IHubState {
   dashboard: IDashboardState;
   control: IControlState;
-  analytics: IAnalyticsState;
+  // this is only true for the local hub
+  // using this to determine whether to show the
+  // control panel
+  websocketConnected: boolean;
 }
 
 export const store = init({
@@ -408,6 +428,7 @@ export const initStore = once(async function () {
       await Promise.all([
         store.dispatch.gallery.fetch(),
         store.dispatch.analytics.fetch(),
+        store.dispatch.hub.fetch(),
       ]);
     } catch (e) {
       console.error(e);
@@ -415,6 +436,9 @@ export const initStore = once(async function () {
     setInterval(() => {
       store.dispatch.gallery.fetch();
       store.dispatch.analytics.fetch();
+      if (!store.getState().hub.websocketConnected) {
+        store.dispatch.hub.fetch();
+      }
     }, 5 * 60 * 1000);
   }
 });

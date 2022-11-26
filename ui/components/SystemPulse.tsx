@@ -37,7 +37,7 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
         }}
       >
         {/* <CartesianGrid strokeDasharray="3 3" fill="#051923" stroke={theme.palette.light} /> */}
-        <XAxis dataKey="timestamp" display="none" />
+        <XAxis dataKey="hour" display="none" />
         {/* <YAxis yAxisId="left" />
         <YAxis yAxisId="right" orientation="right" /> */}
         <Tooltip
@@ -53,9 +53,9 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
                 <Line
                   yAxisId="left"
                   type="monotone"
-                  dataKey="averageMoisture"
+                  dataKey="mositure"
                   stroke={theme.palette.secondary.main}
-                  key="averageMoisture"
+                  key="mositure"
                   activeDot={{ r: 8 }}
                 />
               );
