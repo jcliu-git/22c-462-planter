@@ -62,7 +62,7 @@ export function WaterLevel() {
             transform: "translate(-50%, -50%)",
           }}
         >
-          {waterLevelPercent}%
+          {Math.round(waterLevelPercent)}%
         </Typography>
         <Box
           id="water"

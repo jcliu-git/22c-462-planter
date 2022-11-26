@@ -34,9 +34,22 @@ export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
               borderRadius: theme.shape.borderRadius,
               padding: theme.spacing(3),
               position: "relative",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
-            <Image
+            <Box
+              sx={{
+                background: `url(${photo.filepath})`,
+                backgroundSize: "contain",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                height: "70vh",
+                width: "100%",
+              }}
+            ></Box>
+            {/* <Image
               src={`${photo.filepath}?w=162&auto=format`}
               alt={photo.filepath}
               loading="lazy"
@@ -47,7 +60,7 @@ export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
                 width: "100%",
                 height: "auto",
               }}
-            />
+            /> */}
           </Box>
         </Grid>
       ))}
@@ -88,9 +101,22 @@ export function TimelapsedPhotos({
             borderRadius: theme.shape.borderRadius,
             padding: theme.spacing(3),
             position: "relative",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          <Image
+          <Box
+            sx={{
+              background: `url(${photos[photoIndex].filepath})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              height: "70vh",
+              width: "100%",
+            }}
+          ></Box>
+          {/* <Image
             src={`${photos[photoIndex].filepath}?w=162&auto=format`}
             alt={photos[photoIndex].filepath}
             loading="lazy"
@@ -98,10 +124,12 @@ export function TimelapsedPhotos({
             height={480}
             style={{
               display: "block",
-              width: "100%",
-              height: "auto",
+              width: "auto",
+              height: "100%",
+              // height: "auto",
+              // maxHeight: "100vh",
             }}
-          />
+          /> */}
         </Box>
       </Grid>
     </Grid>
@@ -109,10 +137,6 @@ export function TimelapsedPhotos({
 }
 
 export default function PhotosPage() {
-  // let photoData: PhotoDetails[] = range(20).map((i) => ({
-  //   img: `https://source.unsplash.com/random/720x480?sig=${i}`,
-  //   title: `Image ${i}`,
-  // }));
   const [timeLapseEnabled, setTimeLapseEnabled] = React.useState(false);
 
   const photos = useSelector((state: RootState) => state.gallery.photos);

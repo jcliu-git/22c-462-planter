@@ -25,7 +25,6 @@ export default function Dashboard() {
           <Grid
             item
             container
-            // direction="column"
             spacing={theme.spacing(3)}
             alignItems="stretch"
             xs={12}
@@ -36,13 +35,6 @@ export default function Dashboard() {
             <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
               <WaterLevel />
             </Grid>
-
-            {/* <Grid
-              item
-              sx={{ display: "block", width: "100%", overflow: "hidden" }}
-            >
-              <WaterConsumption />
-            </Grid> */}
           </Grid>
           <Grid
             item

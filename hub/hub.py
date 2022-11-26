@@ -38,12 +38,11 @@ class Hub:
         self.state = contract.DefaultHubState
 
     async def handle_messages(self):
-        stream = hub.stream()
         hub = self.hub
+        stream = hub.stream()
 
         async for message in stream:
             try:
-
                 if message.system == contract.System.MONITORING:
                     if message.type == contract.MessageType.TEMPERATURE:
                         self.state["dashboard"]["temperature"] = message.data
@@ -144,8 +143,9 @@ class Hub:
     async def start(self):
 
         await self.hub.startServer()
+        print("started hub server")
         asyncio.create_task(self.handle_messages())
-        startScheduler(self.services)
+        # startScheduler(self.services)
 
         # handle synchronous reads from the arduino
         while True:
@@ -179,10 +179,6 @@ class Hub:
                 continue
 
 
-async def main():
-    hub = Hub()
-    await hub.start()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    hub = Hub()
+    asyncio.run(hub.start())

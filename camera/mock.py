@@ -43,7 +43,7 @@ async def main():
             print(e)
 
         finally:
-            await asyncio.sleep(5)
+            await asyncio.sleep(30)
 
 
 if __name__ == "__main__":

@@ -2,20 +2,12 @@ import { Client, Pool } from "pg";
 
 class Database extends Pool {
   connected: boolean = false;
-  constructor() {
+  constructor(connectionString: string) {
     super({
-      host: "db",
-      database: "garden",
-      user: "postgres",
-      port: 5432,
-      password: "postgres",
+      connectionString,
       // ssl: {
       //   rejectUnauthorized: false,
       // },
     });
   }
 }
-
-export const database = new Database();
-
-export default database;

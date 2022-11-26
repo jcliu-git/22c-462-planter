@@ -24,7 +24,7 @@ async def main():
                 await client.sendWaterLevel(
                     contract.WaterLevelReadingMessage(getDepthData())
                 )
-                
+
                 if count <= 0:
                     await client.sendLightLevel(
                         contract.LightLevelReadingMessage(getLightData())
@@ -38,6 +38,8 @@ async def main():
 
             except Exception as e:
                 print(e)
+                await client.connect()
+                print("reconnected")
 
             await asyncio.sleep(1)
     finally:

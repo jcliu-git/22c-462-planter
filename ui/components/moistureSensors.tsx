@@ -124,28 +124,33 @@ export function MoistureSensors(): JSX.Element {
               justifyContent: "space-between",
             }}
           >
-            {range(4, 8).map((index) => (
-              // </Grid>
-              <Box
-                key={index}
-                sx={{
-                  padding: theme.spacing(3),
-                }}
-              >
+            {range(4, 8).map((index) => {
+              let moisturePercent =
+                ((sensors[index] - min) / (max - min)) * 100;
+              if (moisturePercent > 100) {
+                moisturePercent = 100;
+              }
+              if (moisturePercent < 0) {
+                moisturePercent = 0;
+              }
+              return (
                 <Box
+                  key={index}
                   sx={{
-                    borderRadius: "100%",
-                    width: "32px",
-                    height: "32px",
-                    backgroundColor: mix(
-                      "#6A3E37",
-                      "#3993DD",
-                      ((sensors[index] - min) / (max - min)) * 100
-                    ).toHexString(),
+                    padding: theme.spacing(3),
                   }}
-                ></Box>
-              </Box>
-            ))}
+                >
+                  <Box
+                    sx={{
+                      borderRadius: "100%",
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor: mix("#6A3E37", "#3993DD").toHexString(),
+                    }}
+                  ></Box>
+                </Box>
+              );
+            })}
           </Box>
         </Grid>
       </Grid>

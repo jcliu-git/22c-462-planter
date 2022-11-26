@@ -9,5 +9,6 @@ hub/temp
 ui/package-lock.json
 .vercel
 **/*.env
+**/*.env.local
 .pytest_cache
 camera/temp
