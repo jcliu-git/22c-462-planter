@@ -9,6 +9,7 @@ from typing import (
     TypedDict,
     Dict,
 )
+import time
 
 
 def now():
@@ -391,7 +392,6 @@ DefaultHubState: IHubState = {
         "waterLevel": {"distance": 20.3, "timestamp": now()},
         "temperature": {"fahrenheit": 65.0005, "timestamp": now()},
         "photos": [],
-        "waterConsumptionByDay": {},
     },
     "control": {
         "planterEnabled": True,
@@ -403,4 +403,5 @@ DefaultHubState: IHubState = {
         "fullResevoirHeight": 5,
         "calibrating": False,
     },
+    "analytics": {"waterConsumptionByDay": {}, "systemPulse": []},
 }

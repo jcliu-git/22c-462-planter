@@ -21,14 +21,7 @@ export enum SystemPulseType {
 
 export function SystemPulse({ types }: { types: SystemPulseType[] }) {
   const theme = useTheme<CustomTheme>();
-  let pulse = useSelector(
-    (state: RootState) => state.hub.analytics.systemPulse
-  );
-
-  // pulse = pulse.map((p) => {
-  //   p.timestamp = new Date(p.timestamp).toLocaleTimeString();
-  //   return p;
-  // });
+  let pulse = useSelector((state: RootState) => state.analytics.systemPulse);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -62,6 +55,7 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
                   type="monotone"
                   dataKey="averageMoisture"
                   stroke={theme.palette.secondary.main}
+                  key="averageMoisture"
                   activeDot={{ r: 8 }}
                 />
               );
@@ -72,6 +66,7 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
                   type="monotone"
                   dataKey="light"
                   stroke={theme.palette.primary.main}
+                  key="light"
                 />
               );
             case SystemPulseType.Temperature:
@@ -81,6 +76,7 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
                   type="monotone"
                   dataKey="temperature"
                   stroke="#ff6392"
+                  key="temperature"
                 />
               );
             case SystemPulseType.WaterLevel:
@@ -90,6 +86,7 @@ export function SystemPulse({ types }: { types: SystemPulseType[] }) {
                   type="monotone"
                   dataKey="waterLevel"
                   stroke={theme.palette.light.main}
+                  key="waterLevel"
                 />
               );
           }

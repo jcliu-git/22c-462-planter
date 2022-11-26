@@ -1,6 +1,7 @@
 import axios from "axios";
+import { result } from "lodash";
 import { socket } from "./socket";
-import { IHubState, IPhotoData } from "./store";
+import { IAnalyticsState, IHubState, IPhotoData } from "./store";
 
 export namespace api {
   export namespace hub {
@@ -25,6 +26,12 @@ export namespace api {
     }
     export async function visitorUrls(): Promise<IPhotoData[]> {
       let result = await axios.get("/api/photos/visitors");
+      return result.data;
+    }
+  }
+  export namespace analytics {
+    export async function fetch(): Promise<IAnalyticsState> {
+      let result = await axios.get("/api/analytics");
       return result.data;
     }
   }
