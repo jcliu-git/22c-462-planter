@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import logging
+from time import sleep
 from datetime import datetime
 from pathlib import Path
 from threading import Thread
@@ -15,6 +16,18 @@ import websockets
 
 sys.path.append("../")
 import contract.contract as contract
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    '%(asctime)s\t%(levelname)s:  %(message)s',
+     "%Y-%m-%d %H:%M:%S"
+     )
+handler.setFormatter(formatter)
+root.addHandler(handler)
 
 Path("logs").mkdir(parents=True, exist_ok=True)
 logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
@@ -102,7 +115,7 @@ class ControlHubServer(object):
                         writer.write(b"\n")  # acknowledgement
                         await writer.drain()
                         writer.close()
-                        # print("File transfer done. Removing", system_name)
+                        logging.info("File transfer done. Removing %s", system_name)
                         del self._clients[system_name]
                         break
                 else:
@@ -138,8 +151,7 @@ class ControlHubServer(object):
             try:
                 yield contract.Message.fromJson(queueItem)
             except Exception as err:
-                print("Error in stream: ", err)
-                logging.error(err)
+                logging.error("Error in stream: %s", err)
                 continue
 
 
@@ -178,31 +190,47 @@ class Client(object):
         Connect to the server
         """
         try:
-            # print("connecting")
-            self._reader, self._writer = await asyncio.open_connection(
-                self._host, self._port
-            )
-            # print("connection established")
-
-            # send system name to server
-            encoded = str(self._system) + "\n"
-            self._writer.write(encoded.encode("utf-8"))
-            await self._writer.drain()
-
+            await self._connect()
             asyncio.create_task(self._receive_messages())
         except Exception as err:
             logging.error("Disconnected: %s", err)
+
+    async def _connect(self):
+        while True:
+            if self._writer is not None:
+                self._writer.close()
+            try:
+                self._reader, self._writer = await asyncio.open_connection(
+                    self._host, self._port
+                )
+                logging.info("Successfully connected to host")
+            except Exception as err:
+                logging.error("Could not connect to host: %s\nReconnecting in 5 seconds...", err)
+                sleep(5)
+                continue
+            try:
+                # send system name to server
+                encoded = str(self._system) + "\n"
+                self._writer.write(encoded.encode("utf-8"))
+                await self._writer.drain()
+                break
+            except Exception as err:
+                logging.error("Could not send name to host: %s\nReconnecting in 5 seconds...", err)
+                sleep(5)
+                continue
 
     async def _receive_messages(self):
         while True:
             data = await self._reader.readline()
             if not data:
-                logging.error("Server has disconnected.")
-                break
+                logging.error("Server has disconnected: %s\nReconnecting in 5 seconds...")
+                await self._connect()
             try:
                 payload = json.loads(data)
-                if payload["type"] == "data":
-                    await self.queue.put(payload)
+                await self.queue.put(payload)
+            except ConnectionError as err:
+                logging.error("Disconnected from hub: %s\nTrying to reconnect...", err)
+                await self._connect()
             except Exception as err:
                 logging.error("Processing received message failed: %s", err)
 
@@ -216,19 +244,29 @@ class Client(object):
             payload = contract.DataMessage(self._system, data)
             jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             encoded = bytes(jsonpayload, encoding="utf-8")
-            self._writer.write(encoded)
-            await self._writer.drain()
+            try:
+                self._writer.write(encoded)
+                await self._writer.drain()
+            except Exception as err:
+                logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+                self._connect()
         else:
-            logging.error("Socket has been closed or does not exist.")
+            logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+            self._connect()
 
     async def _sendContract(self, payload):
         if self._writer is not None:
             jsonpayload = json.dumps(payload, cls=contract.ContractEncoder) + "\n"
             encoded = bytes(jsonpayload, encoding="utf-8")
-            self._writer.write(encoded)
-            await self._writer.drain()
+            try:
+                self._writer.write(encoded)
+                await self._writer.drain()
+            except Exception as err:
+                logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+                self._connect()
         else:
-            logging.error("Socket has been closed or does not exist.")
+            logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+            self._connect()
 
     async def _send_file(self, source_path, data):
         # try open
@@ -267,7 +305,8 @@ class Client(object):
                 acknowledgement = await reader.readline()
                 writer.close()
         except Exception as err:
-            logging.error("Error: %s", err)
+            logging.error("Sending file failed: %s\nAttempting to reconnect...", err)
+            self._connect()
 
     async def _send_file_contract(self, source_path, payload):
         # try open
@@ -307,7 +346,7 @@ class Client(object):
                 acknowledgement = await reader.readline()
                 writer.close()
         except Exception as err:
-            logging.error("Error: %s", err)
+            logging.error("Sending file failed: %s", err)
 
     async def _sendFile(self, source_path, data=None):
         """
