@@ -434,10 +434,14 @@ export const initStore = once(async function () {
       console.error(e);
     }
     setInterval(() => {
-      store.dispatch.gallery.fetch();
-      store.dispatch.analytics.fetch();
-      if (!store.getState().hub.websocketConnected) {
-        store.dispatch.hub.fetch();
+      try {
+        store.dispatch.gallery.fetch();
+        store.dispatch.analytics.fetch();
+        if (!store.getState().hub.websocketConnected) {
+          store.dispatch.hub.fetch();
+        }
+      } catch (e) {
+        console.error(e);
       }
     }, 5 * 60 * 1000);
   }

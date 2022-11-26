@@ -29,7 +29,7 @@ export default function App({ Component, pageProps }: any) {
             <title>Clever Garden</title>
 
             <link rel="manifest" href="/manifest.json" />
-            <link
+            {/* <link
               href="/icons/favicon-16x16.png"
               rel="icon"
               type="image/png"
@@ -40,8 +40,8 @@ export default function App({ Component, pageProps }: any) {
               rel="icon"
               type="image/png"
               sizes="32x32"
-            />
-            <link rel="apple-touch-icon" href="/apple-icon.png"></link>
+            /> */}
+            {/* <link rel="apple-touch-icon" href="/apple-icon.png"></link> */}
             <meta name="theme-color" content={theme.palette.primary.main} />
           </Head>
           <CssBaseline />
