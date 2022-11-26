@@ -22,7 +22,7 @@ logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
 
 
-class ControlHub(object):
+class ControlHubServer(object):
     """
     Control hub class
     =================

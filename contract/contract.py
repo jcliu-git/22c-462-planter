@@ -3,10 +3,8 @@ from enum import Enum
 from json import dumps, JSONEncoder
 from typing import (
     Any,
-    AsyncGenerator,
     Generic,
     Optional,
-    Type,
     TypeVar,
     TypedDict,
     Dict,
@@ -18,7 +16,7 @@ def now():
 
 
 NETWORK_PORT = 32132
-NETWORK_HOST = "192.168.1.43"
+NETWORK_HOST = "192.168.1.99"
 
 
 class ContractEncoder(JSONEncoder):
@@ -106,9 +104,6 @@ class IMessage(TypedDict):
     system: System
     data: DataType
 
-    # def __repr__(self):
-    #     return self.__dict__
-
 
 class Message(Generic[DataType]):
     type: MessageType
@@ -165,14 +160,6 @@ class FileMessage(Message[DataType]):
         data_dict = {"filename": filename, "filesize": filesize, "data": data}
         combined_dict = data_dict | combine
         super().__init__(type, system, combined_dict, MessageIdentifier.FILE)
-
-
-# subsurface definitions
-class HydroponicData(TypedDict):
-    light: int
-    temperature: int
-    depth: int
-    moisture: int
 
 
 class MoistureData(TypedDict):
@@ -233,30 +220,6 @@ class MoistureReadingMessage(Message[MoistureData]):
         )
 
 
-class HydroponicMessage(Message[HydroponicData]):
-    def __init__(
-        self,
-        depth: float,
-        temperature: float,
-        moisture: float,
-        light: int,
-        timestamp: Optional[datetime.datetime] = None,
-    ):
-        if timestamp is None:
-            timestamp = now()
-        super().__init__(
-            MessageType.HYDROPONICS,
-            System.HYDROPONICS,
-            {
-                "depth": depth,
-                "temperature": temperature,
-                "moisture": moisture,
-                "light": light,
-                "timestamp": timestamp,
-            },
-        )
-
-
 class LightData(TypedDict):
     luminosity: float
     timestamp: Optional[datetime.datetime]
@@ -275,7 +238,7 @@ class LightLevelReadingMessage(Message[LightData]):
         )
 
     @staticmethod
-    def fromJson(message: HydroponicMessage):
+    def fromJson(message: LightData):
         return LightLevelReadingMessage(
             message["data"]["luminosity"], message["data"]["timestamp"]
         )
@@ -300,7 +263,7 @@ class WaterLevelReadingMessage(Message[WaterLevelData]):
         )
 
     @staticmethod
-    def fromJson(message: HydroponicMessage):
+    def fromJson(message: WaterLevelData):
         return WaterLevelReadingMessage(
             message["data"]["distance"], message["data"]["timestamp"]
         )
@@ -327,7 +290,7 @@ class TemperatureReadingMessage(Message[TemperatureData]):
         )
 
     @staticmethod
-    def fromJson(message: HydroponicMessage):
+    def fromJson(message: TemperatureData):
         return TemperatureReadingMessage(
             message["data"]["fahrenheit"], message["data"]["timestamp"]
         )
@@ -385,24 +348,6 @@ class PhotoCaptureMessage(FileMessage):
             message.data["phototype"],
             message.data["timestamp"],
         )
-
-
-class IDashboardState(TypedDict):
-    light: LightData
-    temperature: TemperatureData
-    photos: list[PhotoCapture]
-    waterLevel: WaterLevelData
-    moisture: MoistureData
-
-
-class IControlState(TypedDict):
-    planterEnabled: bool
-    hydroponicEnabled: bool
-    dryThreshold: float
-    flowTime: float
-    resevoirHeight: float
-    emptyResevoirHeight: float
-    fullResevoirHeight: float
 
 
 class IDashboardState(TypedDict):

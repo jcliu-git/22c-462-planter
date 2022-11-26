@@ -13,22 +13,33 @@ async def main():
     )
     await client.connect()
     print("connected")
+    """
+    water level is the most important, send that every second
+    send the others every 5 seconds
+    """
+    count = 5
     try:
         while True:
             try:
                 await client.sendWaterLevel(
                     contract.WaterLevelReadingMessage(getDepthData())
                 )
-                await client.sendLightLevel(
-                    contract.LightLevelReadingMessage(getLightData())
-                )
-                await client.sendTemperature(
-                    contract.TemperatureReadingMessage(getTemperatureData())
-                )
+                
+                if count <= 0:
+                    await client.sendLightLevel(
+                        contract.LightLevelReadingMessage(getLightData())
+                    )
+                    await client.sendTemperature(
+                        contract.TemperatureReadingMessage(getTemperatureData())
+                    )
+                    count = 5
+                else:
+                    count -= 1
+
             except Exception as e:
                 print(e)
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
     finally:
         GPIO.cleanup()
 

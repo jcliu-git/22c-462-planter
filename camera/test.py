@@ -38,6 +38,7 @@ async def main():
                 contract.PhotoCaptureMessage(f"{i}.jpg", contract.PhotoType.MOTION),
             )
 
+            os.remove(f"./temp/{i}.jpg")
         except Exception as e:
             print(e)
 

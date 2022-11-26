@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS moisture_level
 CREATE TABLE IF NOT EXISTS temperature
 (
     id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    temperature double precision NOT NULL,
+    fahrenheit double precision NOT NULL,
     "timestamp" timestamp without time zone NOT NULL,
     PRIMARY KEY (id)
 );
@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS photos
     filepath text NOT NULL,
     width integer NOT NULL,
     height integer NOT NULL,
+    phototype text NOT NULL,
     PRIMARY KEY (id)
 );
 
