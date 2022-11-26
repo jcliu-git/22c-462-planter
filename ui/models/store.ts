@@ -181,7 +181,8 @@ export function WaterLevelData(data?: IWaterLevelData): IWaterLevelData {
 
 export interface WaterConsumptionByDay {
   //date : litres consumed on that day
-  [key: string]: number;
+  date: string;
+  litres: number;
 }
 
 export interface IDashboardState {
@@ -239,22 +240,23 @@ export function ControlState(data?: IControlState): IControlState {
 }
 
 export interface IAnalyticsState {
-  waterConsumptionByDay: WaterConsumptionByDay;
+  waterConsumptionByDay: WaterConsumptionByDay[];
   systemPulse: SystemPulse[];
 }
 
 export function AnalyticsState(data?: IAnalyticsState): IAnalyticsState {
   return (
     data || {
-      waterConsumptionByDay: {
-        "2022-11-18": 15,
-        "2022-11-19": 5,
-        "2022-11-20": 2,
-        "2022-11-21": 20,
-        "2022-11-22": 16,
-        "2022-11-23": 7,
-        "2022-11-24": 10,
-      },
+      waterConsumptionByDay: [
+        { date: "19", litres: 194 },
+        { date: "20", litres: 237 },
+        { date: "21", litres: 317 },
+        { date: "22", litres: 169 },
+        { date: "23", litres: 120 },
+        { date: "24", litres: 413 },
+        { date: "25", litres: 195 },
+        { date: "26", litres: 0 },
+      ],
       systemPulse: range(60).map((_) => {
         return {
           timestamp: new Date().toISOString(),
@@ -268,11 +270,25 @@ export function AnalyticsState(data?: IAnalyticsState): IAnalyticsState {
   );
 }
 
+export const analyticsState = createModel<RootModel>()({
+  state: AnalyticsState(),
+  reducers: {
+    replace(state, payload: IAnalyticsState) {
+      return payload;
+    },
+  },
+  effects: (dispatch) => ({
+    async fetch() {
+      let analytics = await api.analytics.fetch();
+      dispatch.analytics.replace(analytics);
+    },
+  }),
+});
+
 export const hubState = createModel<RootModel>()({
   state: {
     control: ControlState(),
     dashboard: DashboardState(),
-    analytics: AnalyticsState(),
   } as IHubState,
   reducers: {
     replace(state, payload: IHubState) {
@@ -366,12 +382,14 @@ export interface RootModel extends Models<RootModel> {
   drawer: typeof drawerState;
   hub: typeof hubState;
   gallery: typeof photoGalleryState;
+  analytics: typeof analyticsState;
 }
 
 export const models: RootModel = {
   drawer: drawerState,
   hub: hubState,
   gallery: photoGalleryState,
+  analytics: analyticsState,
 };
 
 export interface IHubState {
@@ -387,12 +405,16 @@ export const store = init({
 export const initStore = once(async function () {
   if (typeof window !== "undefined") {
     try {
-      await store.dispatch.gallery.fetch();
+      await Promise.all([
+        store.dispatch.gallery.fetch(),
+        store.dispatch.analytics.fetch(),
+      ]);
     } catch (e) {
       console.error(e);
     }
     setInterval(() => {
       store.dispatch.gallery.fetch();
+      store.dispatch.analytics.fetch();
     }, 5 * 60 * 1000);
   }
 });

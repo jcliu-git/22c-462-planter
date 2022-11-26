@@ -12,29 +12,28 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { RootState } from "../models/store";
-
-interface waterConsumptionDatum {
-  name: string;
-  litres: number;
-}
+import { RootState, WaterConsumptionByDay } from "../models/store";
 
 export function WaterConsumption(): JSX.Element {
   const theme = useTheme<CustomTheme>();
   const state = useSelector(
-    (state: RootState) => state.hub.analytics.waterConsumptionByDay
+    (state: RootState) => state.analytics.waterConsumptionByDay
   );
 
+  const today = new Date().getDate();
+
   const data = _.chain(state)
-    .keys()
-    .sort()
-    .reduce((acc, key, index) => {
+    .sort((a, b) => parseInt(a.date) - parseInt(b.date))
+    .reduce((acc, datum) => {
       acc.push({
-        name: index == 6 ? "Today" : `${6 - index}`,
-        litres: state[key],
+        date:
+          parseInt(datum.date) == today
+            ? "Today"
+            : `${today - parseInt(datum.date)}`,
+        litres: datum.litres,
       });
       return acc;
-    }, [] as waterConsumptionDatum[])
+    }, [] as WaterConsumptionByDay[])
     .value();
 
   return (
@@ -65,7 +64,7 @@ export function WaterConsumption(): JSX.Element {
             stroke={theme.palette.light.main}
           />
           <XAxis
-            dataKey="name"
+            dataKey="date"
             tick={{ fill: theme.palette.light.main }}
             label={{
               value: "Days Ago",

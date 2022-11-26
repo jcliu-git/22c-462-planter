@@ -15,11 +15,6 @@ export default function Dashboard() {
 
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Mobile Garden</title>
-        <meta name="description" content="Mobile Garden" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
       <Box sx={{ padding: theme.spacing(3) }}>
         <Grid container spacing={theme.spacing(3)}>
           <Grid

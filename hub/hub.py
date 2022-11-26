@@ -1,3 +1,4 @@
+import random
 import sys
 from pathlib import Path
 import websockets
@@ -6,7 +7,7 @@ import os
 import json
 import threading
 import logging
-from datetime import datetime
+import datetime
 from services import Services
 from scheduler import startScheduler
 
@@ -17,22 +18,32 @@ from network462 import ControlHubServer
 import arduino.arduinoSystemClient as arduino
 
 Path("logs").mkdir(parents=True, exist_ok=True)
-logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_hub.log"
+logname = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "_hub.log"
 logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
 
 
-# lock to prevent simultaneous writes to arduino
+def randomTimePastSevenDays():
+    # returns a random time in the past 7 days
+    return (
+        datetime.datetime.now()
+        - datetime.timedelta(
+            days=random.randint(0, 6), seconds=random.randint(0, 86400)
+        )
+    ).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Hub:
     state: contract.IHubState
+    randomMoisture: bool = False
 
     def __init__(self, state: contract.IHubState = contract.DefaultHubState):
         self.lock = threading.Lock()
         self.state = state
         self.hub = ControlHubServer("0.0.0.0", 32132)
         self.services = Services(self)
+        if len(sys.argv) > 1:
+            self.randomMoisture = sys.argv[1] == "test"
 
     def reset(self):
         self.state = contract.DefaultHubState
@@ -143,23 +154,29 @@ class Hub:
     async def start(self):
 
         await self.hub.startServer()
-        print("started hub server")
         asyncio.create_task(self.handle_messages())
-        # startScheduler(self.services)
+        asyncio.create_task(startScheduler(self.services))
 
         # handle synchronous reads from the arduino
         while True:
             try:
                 await asyncio.sleep(5)
                 self.lock.acquire()
-                moisture_readings = arduino.getSensorValues()
+                moisture_readings = []
+                if self.randomMoisture:
+                    for _ in range(8):
+                        moisture_readings.append(random.randint(120, 1024))
+                else:
+                    moisture_readings = arduino.getSensorValues()
+
+
                 if moisture_readings == False:
                     if self.lock.locked():
                         self.lock.release()
                     continue
 
                 if moisture_readings:
-                    self.state.data["dashboard"]["moisture"] = {
+                    self.state["dashboard"]["moisture"] = {
                         "sensor1": moisture_readings[0],
                         "sensor2": moisture_readings[1],
                         "sensor3": moisture_readings[2],
@@ -168,6 +185,11 @@ class Hub:
                         "sensor6": moisture_readings[5],
                         "sensor7": moisture_readings[6],
                         "sensor8": moisture_readings[7],
+                        "timestamp": (
+                            randomTimePastSevenDays()
+                            if self.randomMoisture
+                            else datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        ),
                     }
 
             except Exception as e:

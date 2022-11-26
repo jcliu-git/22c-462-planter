@@ -1,6 +1,6 @@
 import axios from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { HubState, IHubState } from "../../../models/store";
+import { IHubState } from "../../../models/store";
 
 export default async function handler(
   req: NextApiRequest,
