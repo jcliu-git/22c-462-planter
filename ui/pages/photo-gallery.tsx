@@ -24,7 +24,6 @@ export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
       alignItems="center"
       justifyContent="center"
       height="100%"
-      sx={{ padding: theme.spacing(3) }}
     >
       {photos.map((photo, index) => (
         <Grid item key={index} flexGrow={1}>
@@ -39,17 +38,7 @@ export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
               alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                background: `url(${photo.filepath})`,
-                backgroundSize: "contain",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                height: "70vh",
-                width: "100%",
-              }}
-            ></Box>
-            {/* <Image
+            <Image
               src={`${photo.filepath}?w=162&auto=format`}
               alt={photo.filepath}
               loading="lazy"
@@ -60,7 +49,7 @@ export function VisitorPhotos({ photos }: { photos: IPhotoData[] }) {
                 width: "100%",
                 height: "auto",
               }}
-            /> */}
+            />
           </Box>
         </Grid>
       ))}
@@ -92,7 +81,6 @@ export function TimelapsedPhotos({
       alignItems="center"
       justifyContent="center"
       height="100%"
-      sx={{ padding: theme.spacing(3) }}
     >
       <Grid item xs={12}>
         <Box
@@ -117,19 +105,17 @@ export function TimelapsedPhotos({
             }}
           ></Box>
           {/* <Image
-            src={`${photos[photoIndex].filepath}?w=162&auto=format`}
-            alt={photos[photoIndex].filepath}
-            loading="lazy"
-            width={720}
-            height={480}
-            style={{
-              display: "block",
-              width: "auto",
-              height: "100%",
-              // height: "auto",
-              // maxHeight: "100vh",
-            }}
-          /> */}
+              src={`${photo.filepath}?w=162&auto=format`}
+              alt={photo.filepath}
+              loading="lazy"
+              width={720}
+              height={480}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "auto",
+              }}
+            /> */}
         </Box>
       </Grid>
     </Grid>

@@ -17,7 +17,7 @@ def now():
 
 
 NETWORK_PORT = 32132
-NETWORK_HOST = "172.29.80.1"
+NETWORK_HOST = "192.168.3.128"
 
 
 class ContractEncoder(JSONEncoder):

@@ -1,5 +1,5 @@
 import { max } from "lodash";
-import { store, Store } from "./store";
+import { IHubState, store, Store } from "./store";
 
 export class Socket {
   private socket?: WebSocket;
@@ -7,9 +7,13 @@ export class Socket {
   private port: number;
   constructor(port: number = 5000) {
     this.port = port;
-    setTimeout(() => this.connect(), 1000);
+    this.reconnectInterval = setInterval(() => this.connect(), 1000);
   }
-  async onMessage(message: any) {}
+  async onMessage(message: any) {
+    const state: IHubState = JSON.parse(message.data);
+    state.websocketConnected = true;
+    store.dispatch.hub.replace(state);
+  }
   async connect(retryTimeout = 1000) {
     if (typeof window !== "undefined") {
       try {
@@ -22,13 +26,11 @@ export class Socket {
         console.log("websocket connected");
         clearInterval(this.reconnectInterval);
         store.dispatch.hub.websocketConnected();
-        this.bindToStore(store);
 
         this.socket?.addEventListener("message", this.onMessage);
         this.socket?.addEventListener("error", (e) => {
           console.log(e);
           this.socket = undefined;
-          this.onMessage = async (message) => {};
           clearInterval(this.reconnectInterval);
           this.reconnectInterval = setInterval(() => this.connect(), 1000);
           store.dispatch.hub.websocketDisconnected();
@@ -36,32 +38,26 @@ export class Socket {
         this.socket?.addEventListener("close", (e) => {
           console.log(e);
           this.socket = undefined;
-          this.onMessage = async (message) => {};
           clearInterval(this.reconnectInterval);
           this.reconnectInterval = setInterval(() => this.connect(), 1000);
           store.dispatch.hub.websocketDisconnected();
         });
-      } catch (e) {
-        setTimeout(
-          () => this.connect(max([retryTimeout * 2, 5 * 60 * 1000])),
-          1000
-        );
-      }
+      } catch (e) {}
     }
   }
-  async waitForConnection(interval = 1000) {
+  async waitForConnection() {
     if (this.socket?.readyState === 1) {
       return;
     } else {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      await this.waitForConnection(interval * 2);
+      await this.waitForConnection();
     }
   }
   async send(message: any) {
     if (typeof window !== "undefined") {
       if (!this.socket) {
-        await this.connect();
+        return;
       }
       if (this.socket) {
         try {
@@ -72,11 +68,6 @@ export class Socket {
         }
       }
     }
-  }
-  bindToStore(store: Store) {
-    this.onMessage = async (message) => {
-      store.dispatch.hub.replace(JSON.parse(message.data));
-    };
   }
 }
 

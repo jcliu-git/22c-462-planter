@@ -169,7 +169,6 @@ class Hub:
                 else:
                     moisture_readings = arduino.getSensorValues()
 
-
                 if moisture_readings == False:
                     if self.lock.locked():
                         self.lock.release()
@@ -192,10 +191,15 @@ class Hub:
                         ),
                     }
 
+                if self.lock.locked():
+                    self.lock.release()
+
+            except KeyboardInterrupt:
+                break
+
             except Exception as e:
                 print(e)
                 logging.error(e)
-            finally:
                 if self.lock.locked():
                     self.lock.release()
                 continue

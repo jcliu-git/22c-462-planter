@@ -126,22 +126,19 @@ export const photoGalleryState = createModel<RootModel>()({
   },
   effects: (dispatch) => ({
     async fetch() {
-      let [timelapse, visitors] = await Promise.all([
-        api.camera.timelapseUrls(),
-        api.camera.visitorUrls(),
-      ]);
+      let { periodic, motion } = await api.camera.fetch();
 
       const state = store.getState();
 
       dispatch.gallery.replace({
         photos: {
-          timelapse: _.chain(state.gallery.photos.timelapse)
-            .concat(timelapse)
+          timelapse: _.chain(state.gallery.photos.timelapse || [])
+            .concat(periodic)
             .uniqBy((p) => p.timestamp)
             .sortBy((p) => p.timestamp)
             .value(),
-          visitors: _.chain(state.gallery.photos.visitors)
-            .concat(visitors)
+          visitors: _.chain(state.gallery.photos.visitors || [])
+            .concat(motion)
             .uniqBy((p) => p.timestamp)
             .sortBy((p) => p.timestamp)
             .value(),

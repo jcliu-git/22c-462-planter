@@ -1,0 +1,11 @@
+{
+  "azureFunctions.deploySubpath": "azure_functions",
+  "azureFunctions.scmDoBuildDuringDeployment": true,
+  "azureFunctions.pythonVenv": ".venv",
+  "azureFunctions.projectLanguage": "TypeScript",
+  "azureFunctions.projectRuntime": "~4",
+  "debug.internalConsoleOptions": "neverOpen",
+  "azureFunctions.projectLanguageModel": 2,
+  "azureFunctions.postDeployTask": "npm install (functions)",
+  "azureFunctions.preDeployTask": "npm prune (functions)"
+}

@@ -2,17 +2,16 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { ITemperatureData } from "../../../models/store";
 import { Client } from "pg";
 
-const client = new Client({
-  connectionString: process.env.AZURE_PG_URI,
-  // ssl: {
-  //   rejectUnauthorized: false,
-  // },
-});
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ITemperatureData>
 ) {
+  const client = new Client({
+    connectionString: process.env.AZURE_PG_URI,
+    // ssl: {
+    //   rejectUnauthorized: false,
+    // },
+  });
   try {
     await client.connect();
 
