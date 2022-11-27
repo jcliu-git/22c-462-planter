@@ -22,13 +22,15 @@ logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
 logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
 
+# TODO: remove stdout logger before physical implementation
+
 root = logging.getLogger()
 root.setLevel(logging.WARNING)
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter(
-    '%(asctime)s\t%(levelname)s:  %(message)s',
+    '%(asctime)s | %(levelname)s | %(exc_info)s | %(funcName)s:%(lineno)d\t%(message)s',
     "%Y-%m-%d %H:%M:%S"
     )
 handler.setFormatter(formatter)
@@ -54,7 +56,6 @@ class ControlHubServer(object):
         self._server = None
         self._clients = {}
         self.websocket = None
-        self.queue = asyncio.Queue()
         self.web_socket_server = None
         self.websockets = {}
 
@@ -76,6 +77,7 @@ class ControlHubServer(object):
             await asyncio.Future()
 
     async def startServer(self):
+        self.queue = asyncio.Queue()
         self._server = await asyncio.start_server(self._listen, self._host, self._port)
         asyncio.create_task(self._server.serve_forever())
         asyncio.create_task(self._startWebSocketServer())
@@ -222,7 +224,7 @@ class Client(object):
         while True:
             data = await self._reader.readline()
             if not data:
-                logging.error("Server has disconnected: %s\nReconnecting in 5 seconds...")
+                logging.error("Server has disconnected: \nReconnecting in 5 seconds...")
                 await self._connect()
             try:
                 payload = json.loads(data)
@@ -248,10 +250,10 @@ class Client(object):
                 await self._writer.drain()
             except Exception as err:
                 logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-                self._connect()
+                await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-            self._connect()
+            await self._connect()
 
     async def _sendContract(self, payload):
         if self._writer is not None:
@@ -262,10 +264,10 @@ class Client(object):
                 await self._writer.drain()
             except Exception as err:
                 logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-                self._connect()
+                await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-            self._connect()
+            await self._connect()
 
     async def _send_file(self, source_path, data):
         # try open
