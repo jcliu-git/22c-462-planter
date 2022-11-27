@@ -172,8 +172,6 @@ export default async function handler(
       waterConsumptionByDay,
       systemPulse,
     });
-
-    await client.end();
   } catch (e) {
     console.log(e);
     res.status(500).end();
