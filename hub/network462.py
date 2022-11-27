@@ -28,7 +28,7 @@ root.setLevel(logging.WARNING)
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter(
-    '%(asctime)s\t%(levelname)s:  %(message)s',
+    '%(asctime)s | %(levelname)s | %(exc_info)s | %(funcName)s:%(lineno)d\t%(message)s',
     "%Y-%m-%d %H:%M:%S"
     )
 handler.setFormatter(formatter)
@@ -222,7 +222,7 @@ class Client(object):
         while True:
             data = await self._reader.readline()
             if not data:
-                logging.error("Server has disconnected: %s\nReconnecting in 5 seconds...")
+                logging.error("Server has disconnected: \nReconnecting in 5 seconds...")
                 await self._connect()
             try:
                 payload = json.loads(data)
@@ -248,10 +248,10 @@ class Client(object):
                 await self._writer.drain()
             except Exception as err:
                 logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-                self._connect()
+                await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-            self._connect()
+            await self._connect()
 
     async def _sendContract(self, payload):
         if self._writer is not None:
@@ -262,10 +262,10 @@ class Client(object):
                 await self._writer.drain()
             except Exception as err:
                 logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-                self._connect()
+                await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
-            self._connect()
+            await self._connect()
 
     async def _send_file(self, source_path, data):
         # try open
