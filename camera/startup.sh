@@ -4,5 +4,5 @@
 
 cd /
 cd home/pi/22c-462-planter/camera
-python camera.py
+python3 camera.py
 cd /home/

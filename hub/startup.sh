@@ -4,5 +4,5 @@
 
 cd /
 cd home/pi/22c-462-planter/hub
-python hub.py
+python3 hub.py
 cd /home/

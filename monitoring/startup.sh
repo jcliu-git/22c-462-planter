@@ -4,5 +4,5 @@
 
 cd /
 cd home/pi/22c-462-planter/monitoring
-python main.py
+python3 main.py
 cd /home/
