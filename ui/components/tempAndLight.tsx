@@ -41,13 +41,28 @@ export function TempAndLight() {
       >
         <Grid item xs={6}>
           <Box>
-            <Typography variant="h3" component="span">
+            <Typography
+              variant="h3"
+              component="span"
+              sx={{
+                fontSize: {
+                  xs: "2rem",
+                  sm: "3rem",
+                },
+              }}
+            >
               {temperature.fahrenheit.toFixed(2)}
             </Typography>
             <Typography
               variant="h6"
               component="sup"
-              sx={{ verticalAlign: "top" }}
+              sx={{
+                verticalAlign: "top",
+                fontSize: {
+                  xs: "1rem",
+                  sm: "1.5rem",
+                },
+              }}
             >
               °F
             </Typography>

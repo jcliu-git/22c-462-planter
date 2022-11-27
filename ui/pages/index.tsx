@@ -14,36 +14,34 @@ export default function Dashboard() {
   const theme = useTheme<CustomTheme>();
 
   return (
-    <div className={styles.container}>
-      <Box sx={{ padding: theme.spacing(3) }}>
-        <Grid container spacing={theme.spacing(3)}>
-          <Grid
-            item
-            container
-            spacing={theme.spacing(3)}
-            alignItems="stretch"
-            xs={12}
-          >
-            <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
-              <TempAndLight />
-            </Grid>
-            <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
-              <WaterLevel />
-            </Grid>
+    <Box sx={{ padding: theme.spacing(3) }}>
+      <Grid container spacing={theme.spacing(3)}>
+        <Grid
+          item
+          container
+          spacing={theme.spacing(3)}
+          alignItems="stretch"
+          xs={12}
+        >
+          <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
+            <TempAndLight />
           </Grid>
-          <Grid
-            item
-            container
-            xs={12}
-            spacing={theme.spacing(3)}
-            alignItems="center"
-          >
-            <Grid item sx={{ display: "block", width: "100%" }}>
-              <MoistureSensors />
-            </Grid>
+          <Grid item xs={12} sm={6} sx={{ display: "block", width: "100%" }}>
+            <WaterLevel />
           </Grid>
         </Grid>
-      </Box>
-    </div>
+        <Grid
+          item
+          container
+          xs={12}
+          spacing={theme.spacing(3)}
+          alignItems="center"
+        >
+          <Grid item sx={{ display: "block", width: "100%" }}>
+            <MoistureSensors />
+          </Grid>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

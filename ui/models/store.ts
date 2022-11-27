@@ -383,10 +383,12 @@ export const hubState = createModel<RootModel>()({
     async fetch() {
       try {
         // only fetch if we are not connected to the websocket
-        if (store.getState().hub.websocketConnected) {
+        const state = store.getState();
+        if (state.hub.websocketConnected) {
           return;
         }
         let data = await api.hub.fetch();
+        data.dashboard.photos = state.hub.dashboard.photos;
         dispatch.hub.replace(data);
       } catch (e) {
         console.log(e);
