@@ -1,6 +1,6 @@
 psycopg2==2.9.5
 python-dotenv==0.21.0
-azure-storage-block==12.14.1
+azure-storage-blob==12.14.1
 azure-identity==1.12.0
 websockets==10.4
 serial==0.0.97

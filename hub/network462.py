@@ -22,6 +22,8 @@ logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
 logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
 
+# TODO: remove stdout logger before physical implementation
+
 root = logging.getLogger()
 root.setLevel(logging.WARNING)
 
@@ -54,7 +56,6 @@ class ControlHubServer(object):
         self._server = None
         self._clients = {}
         self.websocket = None
-        self.queue = asyncio.Queue()
         self.web_socket_server = None
         self.websockets = {}
 
@@ -76,6 +77,7 @@ class ControlHubServer(object):
             await asyncio.Future()
 
     async def startServer(self):
+        self.queue = asyncio.Queue()
         self._server = await asyncio.start_server(self._listen, self._host, self._port)
         asyncio.create_task(self._server.serve_forever())
         asyncio.create_task(self._startWebSocketServer())
