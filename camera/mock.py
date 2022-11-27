@@ -14,7 +14,7 @@ async def main():
     if not os.path.isdir("temp"):
         os.mkdir("temp")
 
-    client = CameraClient()
+    client = CameraClient(host="127.0.0.1")
     await client.connect()
 
     print("connected")
@@ -22,7 +22,7 @@ async def main():
     while True:
         try:
             i = int(time.time())
-            res = requests.get(f"https://source.unsplash.com/random/720x480?sig=${i}")
+            res = requests.get(f"https://picsum.photos/720/480")
             with open(f"./temp/{i}.jpg", "wb") as f:
                 f.write(res.content)
 
@@ -33,12 +33,16 @@ async def main():
 
             await asyncio.sleep(1)
 
+            i = int(time.time())
+            res = requests.get(f"https://picsum.photos/720/480")
+            with open(f"./temp/{i}.jpg", "wb") as f:
+                f.write(res.content)
+
             await client.sendImage(
                 f"./temp/{i}.jpg",
                 contract.PhotoCaptureMessage(f"{i}.jpg", contract.PhotoType.MOTION),
             )
 
-            os.remove(f"./temp/{i}.jpg")
         except Exception as e:
             print(e)
 

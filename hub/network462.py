@@ -17,23 +17,22 @@ import websockets
 sys.path.append("../")
 import contract.contract as contract
 
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter(
-    '%(asctime)s\t%(levelname)s:  %(message)s',
-     "%Y-%m-%d %H:%M:%S"
-     )
-handler.setFormatter(formatter)
-root.addHandler(handler)
-
 Path("logs").mkdir(parents=True, exist_ok=True)
 logname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_network.log"
 logpath = f"logs/{logname}"
 logging.basicConfig(filename=logpath, encoding="utf-8")
 
+root = logging.getLogger()
+root.setLevel(logging.WARNING)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    '%(asctime)s\t%(levelname)s:  %(message)s',
+    "%Y-%m-%d %H:%M:%S"
+    )
+handler.setFormatter(formatter)
+root.addHandler(handler)
 
 class ControlHubServer(object):
     """
@@ -305,13 +304,14 @@ class Client(object):
                 acknowledgement = await reader.readline()
                 writer.close()
         except Exception as err:
-            logging.error("Sending file failed: %s\nAttempting to reconnect...", err)
-            self._connect()
+            logging.error("Sending file failed: %s", err)
 
-    async def _send_file_contract(self, source_path, payload):
+    async def _send_file_contract(self, source_path, payload, auto_delete = False):
         # try open
+        open_successful = False
         try:
             with open(source_path, "rb") as file:
+                open_successful = True
                 # file size
                 file.seek(0, os.SEEK_END)
                 file_size = file.tell()
@@ -347,6 +347,10 @@ class Client(object):
                 writer.close()
         except Exception as err:
             logging.error("Sending file failed: %s", err)
+            open_successful = False
+        # delete file after done
+        if auto_delete and open_successful:
+            os.remove(source_path)
 
     async def _sendFile(self, source_path, data=None):
         """
@@ -364,10 +368,10 @@ class Client(object):
         )
         thread.start()
 
-    async def _sendFileContract(self, source_path, contract):
+    async def _sendFileContract(self, source_path, contract, auto_delete = False):
         thread = Thread(
             target=asyncio.run,
-            args=(self._send_file_contract(source_path, contract),),
+            args=(self._send_file_contract(source_path, contract, auto_delete),),
             daemon=True,
         )
         thread.start()
@@ -416,4 +420,4 @@ class CameraClient(Client):
         super().__init__(system, host, port)
 
     async def sendImage(self, source_path: str, data: contract.PhotoCaptureMessage):
-        await self._sendFileContract(source_path, data)
+        await self._sendFileContract(source_path, data, True)
