@@ -18,12 +18,9 @@ class Services:
             self.config["AZURE_STORAGE_CONNECTION_STRING"]
         )
         self.container_name = "images"
-
-        self.db = psycopg2.pool.ThreadedConnectionPool(
-            1,
-            20,
-            self.config["AZURE_PG_URI"],
-        )
+        self.connection = psycopg2.connect(self.config['AZURE_PG_URI'])
+        self.cursor = self.connection.cursor()
+        self.connection.autocommit = True
 
         self.rows = {
             "light": ["id", "luminosity", "timestamp"],
@@ -54,13 +51,8 @@ class Services:
         return [self.omit(row, "id") for row in result]
 
     def insertDB(self, table: str, cols: str, data: str):
-        conn = self.db.getconn()
-        curr = conn.cursor()
-        curr.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
-
-        conn.commit()
-
-        self.db.putconn(conn)
+        self.cursor.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
+        
 
     def insertMoistureLevel(self):
         try:
