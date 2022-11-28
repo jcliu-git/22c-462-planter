@@ -12,14 +12,12 @@ from gpiozero import MotionSensor
 import RPi.GPIO as GPIO
 from plantcv import plantcv as pcv
 import cv2
-from hub.network462 import Client
+from hub.network462 import CameraClient
 from time import sleep
 import numpy as np
 
-# client for file transfer
-client = Client("test", "192.168.3.114", 32132)
-template_src_path = "source/test"
-template_dest_path = "dest/test"
+# client = Client("test", "192.168.3.114", 32132)
+client = CameraClient(host="192.168.3.128")
 
 # devices
 pir = MotionSensor(4)
@@ -36,14 +34,19 @@ pfile = "temp"
 async def camera_capture(time, phototype, filename):
 
     # execute_query(connection, monitor_event)
+    
     camera.start_preview()
     sleep(5)
     camera.capture(filename + ".jpg")
     camera.stop_preview()
+
+    data = contract.PhotoCaptureMessage(filename, phototype, time)
+    """
     data = {}
     data["time"] = time
     data["type"] = phototype
     data["filename"] = filename
+    """
 
     # await client.sendFile(filename+ ".jpg", filename+ ".jpg")
     return data
@@ -229,7 +232,7 @@ async def main():
                 if threshold > 200:
                     filename = current_date + "_motion_image_" + current_time
                     monitor_event = await camera_capture(current_time, "motion", filename)
-                    await client.sendFile(filename + ".jpg", monitor_event)
+                    await client.sendImage(filename + ".jpg", monitor_event)
                     time.sleep(30)
             if time.strftime("%M", t) == "30":  # takes pictures at periods
                 await down()
@@ -238,17 +241,14 @@ async def main():
                 time.sleep(2)
                 filename = current_date + "_time_image_" + current_time
                 monitor_event = await camera_capture(current_time, "periodic", filename)
-                await client.sendFile(filename + ".jpg", monitor_event)
+                await client.sendImage(filename + ".jpg", monitor_event)
                 # checks for plant growth weekly (sunday)
                 if time.strftime("%w:%H:%M", t) == "0:12:30":
                     global pfile
                     if (pfile != "temp"):
                         await plant_analysis(filename, pfile)
-                        data = {}
-                        data["time"] = current_time
-                        data["type"] = "growth"
-                        data["filename"] = filename + "_growth.jpg"
-                        await client.sendFile(filename + "_growth.jpg", data)
+                        data = contract.PhotoCaptureMessage(filename + "_growth.jpg", contract.PhotoType.GROWTH)
+                        await client.sendImage(filename + "_growth.jpg", data)
                     pfile = filename
                 time.sleep(30)
         time.sleep(1)  # race condition fix

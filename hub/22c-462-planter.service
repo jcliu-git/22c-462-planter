@@ -6,4 +6,4 @@ WorkingDirectory=/home/pi/22c-462-planter/hub/
 ExecStart=/home/pi/22c-462-planter/hub/startup.sh
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

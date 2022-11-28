@@ -29,6 +29,7 @@ class ContractEncoder(JSONEncoder):
 class PhotoType(str, Enum):
     MOTION = "motion"
     PERIODIC = "periodic"
+    GROWTH = "growth"
 
     def __str__(self):
         return str(self.value)
