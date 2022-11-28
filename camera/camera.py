@@ -2,23 +2,19 @@ import time
 import sys
 import asyncio
 import pigpio
-
 sys.path.append("../")
 # from aioconsole import ainput
 import contract.contract as contract
 from datetime import date
 from datetime import datetime
 from picamera import PiCamera
-import picamera.array
 from gpiozero import MotionSensor
-from gpiozero import Servo
 import RPi.GPIO as GPIO
 from plantcv import plantcv as pcv
 import cv2
 from hub.network462 import Client
 from time import sleep
 import numpy as np
-import json
 
 # client for file transfer
 client = Client("test", "192.168.3.114", 32132)
@@ -86,6 +82,17 @@ async def plant_analysis(filename, pfile):
     # Take difference of both plants
     plantdifference = cv2.subtract(plant1, plant2)
     plantdifference = pcv.erode(gray_img=plantdifference, ksize=10, i=10)
+
+    # Remove white background noise from difference image
+    th = 200 # defines the value below which a pixel is considered "white"
+    white_pixels = np.where(
+        (plantdifference[:, :, 0] > th) & 
+        (plantdifference[:, :, 1] > th) & 
+        (plantdifference[:, :, 2] > th)
+        )
+    # set those pixels to black
+    plantdifference[white_pixels] = [0, 0, 0]
+    cv2.imwrite(filename + "_growth.jpg", plantdifference)
     return plantdifference
 
 
@@ -102,15 +109,17 @@ def motion_track():
 
 
 async def up():
+    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
-    servo180.set_servo_pulsewidth(17, 1000)
+    servo180.set_servo_pulsewidth(17, 1200)
     time.sleep(3)
     servo180.set_PWM_dutycycle(17, 0)
     servo180.set_PWM_frequency(17, 0)
 
 
 async def center():
+    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
     servo180.set_servo_pulsewidth(17, 1500)
@@ -120,9 +129,10 @@ async def center():
 
 
 async def down():
+    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
-    servo180.set_servo_pulsewidth(17, 2000)
+    servo180.set_servo_pulsewidth(17, 1850)
     time.sleep(3)
     servo180.set_PWM_dutycycle(17, 0)
     servo180.set_PWM_frequency(17, 0)
@@ -143,7 +153,7 @@ async def right45():
     servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
-    servo360.set_servo_pulsewidth(27, 700)
+    servo360.set_servo_pulsewidth(27, 1100)
     time.sleep(0.08)
     servo360.set_PWM_dutycycle(27, 0)
     servo360.set_PWM_frequency(27, 0)
@@ -154,7 +164,7 @@ async def left45():
     servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
-    servo360.set_servo_pulsewidth(27, 1700)
+    servo360.set_servo_pulsewidth(27, 1900)
     time.sleep(0.08)
     servo360.set_PWM_dutycycle(27, 0)
     servo360.set_PWM_frequency(27, 0)
@@ -165,7 +175,17 @@ async def left90():
     servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
-    servo360.set_servo_pulsewidth(27, 1750)
+    servo360.set_servo_pulsewidth(27, 2000)
+    time.sleep(0.16)
+    servo360.set_PWM_dutycycle(27, 0)
+    servo360.set_PWM_frequency(27, 0)
+    time.sleep(1)
+
+async def center2():
+    servo360 = pigpio.pi()
+    servo360.set_mode(27, pigpio.OUTPUT)
+    servo360.set_PWM_frequency(27, 50)
+    servo360.set_servo_pulsewidth(27, 1500)
     time.sleep(0.16)
     servo360.set_PWM_dutycycle(27, 0)
     servo360.set_PWM_frequency(27, 0)
@@ -184,35 +204,36 @@ async def main():
         current_time = time.strftime("%H-%M-%S", t)
         if cooldown == False:
             await center()
+            camera.start_preview()
+            time.sleep(5)
             camera.capture("temp.jpg")
-            sleep(2)
+            camera.stop_preview()
+            time.sleep(2)
             if pir.motion_detected:  # takes picture if detects motion
                 filename = current_date + "_motion_image_" + current_time
                 monitor_event = await camera_capture(current_time, "motion", filename)
-                # await client.sendData(monitor_event)
                 await client.sendFile(filename + ".jpg", monitor_event)
-                cooldown = True
-            if time.strftime("%M:%S", t) == "30:00":  # takes pictures at periods
+                time.sleep(30)
+            if time.strftime("%M", t) == "30":  # takes pictures at periods
                 await down()
-                sleep(2)
+                time.sleep(2)
+                await center2()
+                time.sleep(2)
                 filename = current_date + "_time_image_" + current_time
                 monitor_event = await camera_capture(current_time, "periodic", filename)
-                # await client.sendData(monitor_event)
                 await client.sendFile(filename + ".jpg", monitor_event)
                 # checks for plant growth weekly (sunday)
-                if time.strftime("%w:%H:%M:%S", t) == "0:12:30:00":
-                    plantdifference = plant_analysis(filename, pfile)
-                    cv2.imwrite(filename + "_growth.jpg", plantdifference)
-                    data = {}
-                    data["time"] = current_time
-                    data["type"] = "growth"
-                    data["filename"] = filename + "_growth.jpg"
-                    await client.sendFile(filename + "_growth.jpg", data)
+                if time.strftime("%w:%H:%M", t) == "0:12:30":
+                    global pfile
+                    if (pfile != "temp"):
+                        await plant_analysis(filename, pfile)
+                        data = {}
+                        data["time"] = current_time
+                        data["type"] = "growth"
+                        data["filename"] = filename + "_growth.jpg"
+                        await client.sendFile(filename + "_growth.jpg", data)
                     pfile = filename
-                cooldown = True
-        if cooldown == True:  # adds a 5 minute cooldown for pictures
-            time.sleep(300)
-            cooldown = False
+                time.sleep(30)
         time.sleep(1)  # race condition fix
 
 
