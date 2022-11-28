@@ -96,13 +96,22 @@ async def plant_analysis(filename, pfile):
     return plantdifference
 
 
-def motion_track():
-    # Defined angles of rotation for servo2(continuous servo)
-    center = 7.5
-    right_45 = 5
-    right_90 = 2.7
-    left_45 = 10
-    right_90 = 12.5
+def motion_detect():
+    #uses before and after to see if there is motion
+    before = cv2.imread("temp.jpg")
+    after = cv2.imread("temp2.jpg")
+    diff = 255 - cv2.absdiff(before, after)
+    gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 200)
+    contours, hierarchy = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    sorted_contours = sorted(contours, key = cv2.contourArea, reverse = True)
+    if len(sorted_contours) != 0:
+        largest_item = sorted_contours[0]
+        cv2.drawContours(diff, largest_item, -1 (255,0,0),10)
+        cont_area = cv2.contourArea(largest_item)
+    else:
+        cont_area = 0
+    return cont_area  
 
 
 # servo definitions
@@ -204,16 +213,24 @@ async def main():
         current_time = time.strftime("%H-%M-%S", t)
         if cooldown == False:
             await center()
+            await center2()
             camera.start_preview()
             time.sleep(5)
             camera.capture("temp.jpg")
             camera.stop_preview()
             time.sleep(2)
             if pir.motion_detected:  # takes picture if detects motion
-                filename = current_date + "_motion_image_" + current_time
-                monitor_event = await camera_capture(current_time, "motion", filename)
-                await client.sendFile(filename + ".jpg", monitor_event)
-                time.sleep(30)
+                camera.start_preview()
+                time.sleep(5)
+                camera.capture("temp2.jpg")
+                camera.stop_preview()
+                #checks to see if there is a new entity
+                threshold = await motion_detect()
+                if threshold > 200:
+                    filename = current_date + "_motion_image_" + current_time
+                    monitor_event = await camera_capture(current_time, "motion", filename)
+                    await client.sendFile(filename + ".jpg", monitor_event)
+                    time.sleep(30)
             if time.strftime("%M", t) == "30":  # takes pictures at periods
                 await down()
                 time.sleep(2)
