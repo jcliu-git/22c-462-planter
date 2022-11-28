@@ -10,9 +10,10 @@ import logging
 import datetime
 from services import Services
 from scheduler import startScheduler
+from pathlib import Path
 
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."))
 
-sys.path.append("../")
 import contract.contract as contract
 from network462 import ControlHubServer
 import arduino.arduinoSystemClient as arduino

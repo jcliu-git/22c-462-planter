@@ -219,8 +219,8 @@ export default function ControlPanel() {
                       }}
                     >
                       {hub.control.calibrating
-                        ? "Calibrate"
-                        : "Stop Calibration"}
+                        ? "Stop Calibration"
+                        : "Calibrate"}
                     </Typography>
                   </Card>
                 </Grid>

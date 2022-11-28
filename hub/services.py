@@ -5,8 +5,10 @@ from dotenv import dotenv_values
 from azure.storage.blob import BlobServiceClient
 import os
 
-sys.path.append("../")
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."))
 import contract.contract as contract
+
+
 
 
 class Services:

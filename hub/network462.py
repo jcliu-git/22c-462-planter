@@ -14,7 +14,8 @@ from types import AsyncGeneratorType
 from typing import Any, AsyncGenerator, Generator
 import websockets
 
-sys.path.append("../")
+sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."))
+
 import contract.contract as contract
 
 Path("logs").mkdir(parents=True, exist_ok=True)
@@ -30,11 +31,12 @@ root.setLevel(logging.WARNING)
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter(
-    '%(asctime)s | %(levelname)s | %(exc_info)s | %(funcName)s:%(lineno)d\t%(message)s',
-    "%Y-%m-%d %H:%M:%S"
-    )
+    "%(asctime)s | %(levelname)s | %(exc_info)s | %(funcName)s:%(lineno)d\t%(message)s",
+    "%Y-%m-%d %H:%M:%S",
+)
 handler.setFormatter(formatter)
 root.addHandler(handler)
+
 
 class ControlHubServer(object):
     """
@@ -206,7 +208,9 @@ class Client(object):
                 )
                 logging.info("Successfully connected to host")
             except Exception as err:
-                logging.error("Could not connect to host: %s\nReconnecting in 5 seconds...", err)
+                logging.error(
+                    "Could not connect to host: %s\nReconnecting in 5 seconds...", err
+                )
                 sleep(5)
                 continue
             try:
@@ -216,7 +220,9 @@ class Client(object):
                 await self._writer.drain()
                 break
             except Exception as err:
-                logging.error("Could not send name to host: %s\nReconnecting in 5 seconds...", err)
+                logging.error(
+                    "Could not send name to host: %s\nReconnecting in 5 seconds...", err
+                )
                 sleep(5)
                 continue
 
@@ -249,7 +255,9 @@ class Client(object):
                 self._writer.write(encoded)
                 await self._writer.drain()
             except Exception as err:
-                logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+                logging.error(
+                    "Could not send data: %s\nAttempting to reconnect...", err
+                )
                 await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
@@ -263,7 +271,9 @@ class Client(object):
                 self._writer.write(encoded)
                 await self._writer.drain()
             except Exception as err:
-                logging.error("Could not send data: %s\nAttempting to reconnect...", err)
+                logging.error(
+                    "Could not send data: %s\nAttempting to reconnect...", err
+                )
                 await self._connect()
         else:
             logging.error("Could not send data: %s\nAttempting to reconnect...", err)
@@ -308,7 +318,7 @@ class Client(object):
         except Exception as err:
             logging.error("Sending file failed: %s", err)
 
-    async def _send_file_contract(self, source_path, payload, auto_delete = False):
+    async def _send_file_contract(self, source_path, payload, auto_delete=False):
         # try open
         open_successful = False
         try:
@@ -370,7 +380,7 @@ class Client(object):
         )
         thread.start()
 
-    async def _sendFileContract(self, source_path, contract, auto_delete = False):
+    async def _sendFileContract(self, source_path, contract, auto_delete=False):
         thread = Thread(
             target=asyncio.run,
             args=(self._send_file_contract(source_path, contract, auto_delete),),
