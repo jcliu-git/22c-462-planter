@@ -51,7 +51,7 @@ void setup() {
   Serial.println(flow_time);
   
   pinMode(2, OUTPUT);
-  digitalWrite(3, hydro_enable ? HIGH : LOW); // set hydroponics pump
+  digitalWrite(2, hydro_enable ? HIGH : LOW); // set hydroponics pump
 
   // initialize planter pumps and set low
   pinMode(3, OUTPUT);
@@ -74,7 +74,7 @@ size_t msg_counter = 0;
 
 void loop() { 
   // update hydroponics pump
-  digitalWrite(3, hydro_enable ? HIGH : LOW);
+  digitalWrite(2, hydro_enable ? HIGH : LOW);
 
   // update planter pumps
   updatePump(0, A0, 3);
@@ -213,7 +213,11 @@ unsigned long bytesToLong(unsigned char* buf) {
 void updatePump(size_t pump_no, byte sensor_pin_no, byte pump_pin_no) {
   // pump active state
   if(pump_actives[pump_no]) {
-    if(millis() - pump_starts[pump_no] > flow_time*2) {
+    if(!planter_enable) {
+      digitalWrite(pump_pin_no, LOW);      
+      pump_actives[pump_no] = false;            
+    }
+    else if(millis() - pump_starts[pump_no] > flow_time*2) {
       pump_actives[pump_no] = false;     
     }
     else if(millis() - pump_starts[pump_no] > flow_time) {
