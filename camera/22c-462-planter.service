@@ -1,0 +1,9 @@
+[Unit]
+Description=Smart planter service for CSCE 462 project
+
+[Service]
+WorkingDirectory=/home/pi/22c-462-planter/camera/
+ExecStart=/home/pi/22c-462-planter/camera/startup.sh
+
+[Install]
+WantedBy=multi-user.target
