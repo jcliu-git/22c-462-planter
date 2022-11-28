@@ -9,8 +9,6 @@ sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."))
 import contract.contract as contract
 
 
-
-
 class Services:
     def __init__(self, hub) -> None:
         self.hub = hub
@@ -20,9 +18,6 @@ class Services:
             self.config["AZURE_STORAGE_CONNECTION_STRING"]
         )
         self.container_name = "images"
-        self.connection = psycopg2.connect(self.config['AZURE_PG_URI'])
-        self.cursor = self.connection.cursor()
-        self.connection.autocommit = True
 
         self.rows = {
             "light": ["id", "luminosity", "timestamp"],
@@ -53,8 +48,12 @@ class Services:
         return [self.omit(row, "id") for row in result]
 
     def insertDB(self, table: str, cols: str, data: str):
-        self.cursor.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
-        
+        connection = psycopg2.connect(self.config["AZURE_PG_URI"])
+        cursor = connection.cursor()
+        cursor.execute(f"INSERT INTO {table} ({cols}) VALUES({data})")
+        connection.commit()
+        cursor.close()
+        connection.close()
 
     def insertMoistureLevel(self):
         try:
