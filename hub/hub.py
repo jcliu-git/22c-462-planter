@@ -163,13 +163,15 @@ class Hub:
             try:
                 await asyncio.sleep(5)
                 self.lock.acquire()
-                moisture_readings = []
-                if self.randomMoisture:
-                    for _ in range(8):
-                        moisture_readings.append(random.randint(120, 1024))
-                else:
-                    moisture_readings = arduino.getSensorValues()
+                # moisture_readings = []
+                # if self.randomMoisture:
+                #    for _ in range(8):
+                #        moisture_readings.append(random.randint(120, 1024))
+                # else:
+                #    moisture_readings = arduino.getSensorValues()
 
+                moisture_readings = arduino.getSensorValues()
+                print(moisture_readings)
                 if moisture_readings == False:
                     if self.lock.locked():
                         self.lock.release()
