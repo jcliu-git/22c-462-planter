@@ -376,34 +376,35 @@ class IHubState(TypedDict):
     control: IControlState
 
 
-DefaultHubState: IHubState = {
-    "dashboard": {
-        "moisture": {
-            "sensor1": 20,
-            "sensor2": 101,
-            "sensor3": 229,
-            "sensor4": 488,
-            "sensor5": 2928,
-            "sensor6": 72,
-            "sensor7": 289,
-            "sensor8": 209,
-            "timestamp": now(),
+def default_hub_state() -> IHubState:
+    return {
+        "dashboard": {
+            "moisture": {
+                "sensor1": 20,
+                "sensor2": 101,
+                "sensor3": 229,
+                "sensor4": 488,
+                "sensor5": 2928,
+                "sensor6": 72,
+                "sensor7": 289,
+                "sensor8": 209,
+                "timestamp": now(),
+            },
+            "light": {"luminosity": 54016, "timestamp": now()},
+            "waterLevel": {"distance": 20.3, "timestamp": now()},
+            "temperature": {"fahrenheit": 65.0005, "timestamp": now()},
+            "photos": [],
         },
-        "light": {"luminosity": 54016, "timestamp": now()},
-        "waterLevel": {"distance": 20.3, "timestamp": now()},
-        "temperature": {"fahrenheit": 65.0005, "timestamp": now()},
-        "photos": [],
-    },
-    "control": {
-        "planterEnabled": True,
-        "hydroponicEnabled": True,
-        "dryThreshold": 500,
-        "flowTime": 3.0,
-        "resevoirHeight": 245,
-        "emptyResevoirHeight": 250,
-        "fullResevoirHeight": 5,
-        "calibrating": False,
-    },
-    "analytics": {"waterConsumptionByDay": {}, "systemPulse": []},
-    "websocketConnected": False,
-}
+        "control": {
+            "planterEnabled": True,
+            "hydroponicEnabled": True,
+            "dryThreshold": 500,
+            "flowTime": 3.0,
+            "resevoirHeight": 245,
+            "emptyResevoirHeight": 250,
+            "fullResevoirHeight": 5,
+            "calibrating": False,
+        },
+        "analytics": {"waterConsumptionByDay": {}, "systemPulse": []},
+        "websocketConnected": False,
+    }

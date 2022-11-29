@@ -404,6 +404,7 @@ IRRIGATION = "irrigation"
 
 
 class MonitoringClient(Client):
+    # these clients just reinforce the contract
     def __init__(
         self,
         system: contract.System = contract.System.MONITORING,
@@ -419,6 +420,9 @@ class MonitoringClient(Client):
         await self._sendContract(message)
 
     async def sendLightLevel(self, message: contract.LightLevelReadingMessage):
+        await self._sendContract(message)
+
+    async def sendSoilMoisture(self, message: contract.MoistureReadingMessage):
         await self._sendContract(message)
 
 

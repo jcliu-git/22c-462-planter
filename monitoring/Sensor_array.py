@@ -9,56 +9,71 @@ import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 
 
-# ...Setting up mcp3008...#
-spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+class SensorArray:
+    # ...Setting up mcp3008...#
+    spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+    cs = digitalio.DigitalInOut(board.D22)
+    mcp = MCP.MCP3008(spi, cs)
+    photo_chan = AnalogIn(mcp, MCP.P0)
+    temp_chan = AnalogIn(mcp, MCP.P1)
+    moisture_channels = [
+        AnalogIn(mcp, MCP.P2),
+        AnalogIn(mcp, MCP.P3),
+        AnalogIn(mcp, MCP.P4),
+        AnalogIn(mcp, MCP.P5),
+    ]
 
-cs = digitalio.DigitalInOut(board.D22)
+    # ...Setting up depth sensor...#
+    PIN_TRIGGER = 16
+    PIN_ECHO = 26
 
-mcp = MCP.MCP3008(spi, cs)
+    def __init__(self):
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.PIN_TRIGGER, GPIO.OUT)
+        GPIO.setup(self.PIN_ECHO, GPIO.IN)
+        GPIO.output(self.PIN_TRIGGER, GPIO.LOW)
 
-tempChan = AnalogIn(mcp, MCP.P1)
-photoChan = AnalogIn(mcp, MCP.P0)
+    def __del__(self):
+        GPIO.output(self.PIN_TRIGGER, GPIO.LOW)
+        GPIO.output(self.PIN_ECHO, GPIO.LOW)
+        GPIO.output(self.PIN_PUMP, GPIO.LOW)
+        GPIO.cleanup()
 
-GPIO.setmode(GPIO.BCM)
+    def cleanup(self):
+        self.__del__()
 
+    def pumpOn(self):
+        GPIO.output(self.PIN_PUMP, GPIO.HIGH)
 
-# ...Setting up depth sensor...#
-PIN_TRIGGER = 16
-PIN_ECHO = 26
+    def pumpOff(self):
+        GPIO.output(self.PIN_PUMP, GPIO.LOW)
 
-GPIO.setup(PIN_TRIGGER, GPIO.OUT)
-GPIO.setup(PIN_ECHO, GPIO.IN)
+    def getDepth(self):
 
-GPIO.output(PIN_TRIGGER, GPIO.LOW)
+        GPIO.output(self.PIN_TRIGGER, GPIO.HIGH)
 
+        time.sleep(0.00001)
 
+        GPIO.output(self.PIN_TRIGGER, GPIO.LOW)
 
-def getDepthData():
+        while GPIO.input(self.PIN_ECHO) == 0:
+            pulse_start_time = time.time()
+        while GPIO.input(self.IN_ECHO) == 1:
+            pulse_end_time = time.time()
 
-    GPIO.output(PIN_TRIGGER, GPIO.HIGH)
+        pulse_duration = pulse_end_time - pulse_start_time
+        distance = round(pulse_duration * 17150, 2)
 
-    time.sleep(0.00001)
+        # distance in cm
+        return distance
 
-    GPIO.output(PIN_TRIGGER, GPIO.LOW)
+    def getTemperature(self):
+        volt = self.tempChan.value
+        return volt * 0.00109375
 
+    def getLight(self):
+        volt = self.photoChan.value
+        return volt
 
-    while GPIO.input(PIN_ECHO) == 0:
-        pulse_start_time = time.time()
-    while GPIO.input(PIN_ECHO) == 1:
-        pulse_end_time = time.time()
-
-    pulse_duration = pulse_end_time - pulse_start_time
-    distance = round(pulse_duration * 17150, 2)
-
-
-    # distance in cm
-    return distance
-
-
-def getTemperatureData():
-    volt = tempChan.value
-    return volt * 0.00109375
-
-def getLightData():
-    volt = photoChan.value
-    return volt
+    def getMoisture(self):
+        return [chan.value / 100 for chan in self.moisture_channels]
