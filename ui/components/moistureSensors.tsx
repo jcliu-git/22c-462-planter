@@ -119,7 +119,7 @@ export function MoistureSensors(): JSX.Element {
             ))}
           </Box>
         </Grid>
-        <Grid item xs={12}>
+        {/* <Grid item xs={12}>
           <Box
             sx={{
               display: "flex",
@@ -155,7 +155,7 @@ export function MoistureSensors(): JSX.Element {
               );
             })}
           </Box>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Card>
   );

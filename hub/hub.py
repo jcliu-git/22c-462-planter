@@ -147,8 +147,6 @@ class Hub:
 
                         if self.resevoirLow():
                             self.state["control"]["planterEnabled"] = False
-                        else:
-                            self.state["control"]["planterEnabled"] = True
 
                         websockets.broadcast(
                             hub.websockets.values(), json.dumps(self.state)
