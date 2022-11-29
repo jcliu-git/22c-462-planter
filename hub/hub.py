@@ -102,6 +102,12 @@ class Hub:
     def reset(self):
         self.state = contract.default_hub_state()
 
+    def resevoirLow(self):
+        return (
+            self.state["control"]["emptyResevoirHeight"]
+            - self.state["dashboard"]["waterLevel"]["distance"]
+        ) / self.state["control"]["resevoirHeight"]
+
     def shouldPump(self):
         return (
             sum(
@@ -111,6 +117,7 @@ class Hub:
             > self.dryThresholdFromPercent(self.state["control"]["dryThreshold"] / 100)
             and self.state["control"]["planterEnabled"]
             and not self.state["control"]["calibrating"]
+            and not self.resevoirLow()
         )
 
     async def handle_messages(self):
@@ -135,12 +142,15 @@ class Hub:
 
                     if message.type == contract.MessageType.WATER_LEVEL:
                         self.state["dashboard"]["waterLevel"] = message.data
+                        if not self.shouldPump():
+                            self.planterPump.off()
+
+                        if self.resevoirLow():
+                            self.state["control"]["planterEnabled"] = False
+
                         websockets.broadcast(
                             hub.websockets.values(), json.dumps(self.state)
                         )
-
-                        if not self.shouldPump():
-                            self.planterPump.off()
 
                     if message.type == contract.MessageType.MOISTURE_READING:
                         self.state["dashboard"]["moisture"] = message.data
@@ -174,17 +184,6 @@ class Hub:
                                 self.hydroponicPump.on(0)
                             else:
                                 self.hydroponicPump.off()
-
-                            # if the water level is below 10% force pumps to be disabled
-                            if (
-                                (
-                                    newState["control"]["emptyResevoirHeight"]
-                                    - newState["dashboard"]["waterLevel"]["distance"]
-                                )
-                                / newState["control"]["resevoirHeight"]
-                            ) < 0.1:
-                                newState["control"]["planterEnabled"] = False
-                                continue
 
                             if self.shouldPump():
                                 self.planterPump.on(self.state["control"]["flowTime"])
