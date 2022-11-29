@@ -139,6 +139,9 @@ class Hub:
                             hub.websockets.values(), json.dumps(self.state)
                         )
 
+                        if not self.shouldPump():
+                            self.planterPump.off()
+
                     if message.type == contract.MessageType.MOISTURE_READING:
                         self.state["dashboard"]["moisture"] = message.data
                         websockets.broadcast(
