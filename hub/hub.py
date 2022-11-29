@@ -70,6 +70,7 @@ class PumpController:
             return
 
         self.state = PumpState.SUSPENDED
+        GPIO.output(self.pin, GPIO.LOW)
         asyncio.get_event_loop().call_later(self.debounce, self.off)
 
     def on(self, duration: int):
