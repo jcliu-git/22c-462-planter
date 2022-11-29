@@ -74,6 +74,7 @@ class PumpController:
         asyncio.get_event_loop().call_later(self.debounce, self.off)
 
     def on(self, duration: int):
+        # pass zero to turn on indefinitely
         if (
             not self.enabled
             or self.state == PumpState.ON
@@ -83,7 +84,8 @@ class PumpController:
 
         self.state = PumpState.ON
         GPIO.output(self.pin, GPIO.HIGH)
-        asyncio.get_event_loop().call_later(duration, self.suspend)
+        if duration > 0:
+            asyncio.get_event_loop().call_later(duration, self.suspend)
 
 
 class Hub:
@@ -164,6 +166,11 @@ class Hub:
                             ]
 
                             self.state = newState
+
+                            if self.state["control"]["hydroponicEnabled"]:
+                                self.hydroponicPump.on(0)
+                            else:
+                                self.hydroponicPump.off()
 
                             # if the water level is below 10% force pumps to be disabled
                             if (
