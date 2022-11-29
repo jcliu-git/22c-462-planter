@@ -100,12 +100,23 @@ class Hub:
     def reset(self):
         self.state = contract.default_hub_state()
 
+    def shouldPump(self):
+        return (
+            sum(
+                [self.state["dashboard"]["moisture"][f"sensor{x}"] for x in range(1, 9)]
+            )
+            / 4
+            > self.dryThresholdFromPercent(self.state["control"]["dryThreshold"] / 100)
+            and self.state["control"]["planterEnabled"]
+            and not self.state["control"]["calibrating"]
+        )
+
     async def handle_messages(self):
         hub = self.hub
         stream = hub.stream()
 
         async for message in stream:
-            #print(message)
+            # print(message)
             try:
                 if message.system == contract.System.MONITORING:
                     if message.type == contract.MessageType.TEMPERATURE:
@@ -131,11 +142,7 @@ class Hub:
                         websockets.broadcast(
                             hub.websockets.values(), json.dumps(self.state)
                         )
-                        if sum(
-                            [self.state['dashboard']['moisture'][f'sensor{x}'] for x in range(1,9)]
-                        ) / 4 > self.dryThresholdFromPercent(
-                            self.state["control"]["dryThreshold"] / 100
-                        ):
+                        if self.shouldPump():
                             self.planterPump.on(self.state["control"]["flowTime"])
                         else:
                             self.planterPump.off()
@@ -168,18 +175,9 @@ class Hub:
                             ) < 0.1:
                                 newState["control"]["planterEnabled"] = False
                                 continue
-                            
 
-                            if (
-                                sum([self.state['dashboard']['moisture'][f'sensor{x}'] for x in range(1,9)]) / 4
-                                > self.dryThresholdFromPercent(
-                                    self.state["control"]["dryThreshold"] / 100
-                                )
-                                and self.state["control"]["planterEnabled"]
-                            ):
-                                self.planterPump.on(
-                                    self.state["control"]["flowTime"]
-                                )
+                            if self.shouldPump():
+                                self.planterPump.on(self.state["control"]["flowTime"])
                             else:
                                 self.planterPump.off()
 
