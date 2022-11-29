@@ -68,11 +68,11 @@ class SensorArray:
         return distance
 
     def getTemperature(self):
-        volt = self.tempChan.value
+        volt = self.temp_chan.value
         return volt * 0.00109375
 
     def getLight(self):
-        volt = self.photoChan.value
+        volt = self.photo_chan.value
         return volt
 
     def getMoisture(self):

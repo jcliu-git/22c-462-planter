@@ -28,7 +28,7 @@ async def main():
 
                 await client.sendSoilMoisture(
                     contract.MoistureReadingMessage(
-                        [*sensors.getMoisture(), 0, 0, 0, 0]
+                        *[*sensors.getMoisture(), 0, 0, 0, 0]
                     )
                 )
 

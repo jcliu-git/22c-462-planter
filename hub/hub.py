@@ -130,11 +130,12 @@ class Hub:
                             hub.websockets.values(), json.dumps(self.state)
                         )
 
-                        if (
-                            sum(self.state["dashboard"]["moisture"][:4]) / 4
-                            < self.state["dashboard"]["moistureThreshold"]
+                        if sum(
+                            self.state["dashboard"]["moisture"][:4]
+                        ) / 4 < self.dryThresholdFromPercent(
+                            self.state["control"]["dryThreshold"] / 100
                         ):
-                            self.state["dashboard"]["moistureThresholdReached"] = True
+                            self.state["control"]["dryThreshold"] = True
                             self.planterPump.on(self.state["dashboard"]["pumpDuration"])
 
                 if message.system == contract.System.CAMERA:
@@ -169,7 +170,9 @@ class Hub:
 
                             if (
                                 sum(self.state["dashboard"]["moisture"][:4]) / 4
-                                < self.state["dashboard"]["moistureThreshold"]
+                                < self.dryThresholdFromPercent(
+                                    self.state["control"]["dryThreshold"] / 100
+                                )
                                 and self.state["control"]["planterEnabled"]
                             ):
                                 self.planterPump.on(
@@ -192,6 +195,15 @@ class Hub:
 
         while True:
             await asyncio.sleep(5)
+
+    def dryThresholdFromPercent(percent: float):
+        DRY_MAX = 495
+        WET_MAX = 190
+        if (percent < 0) or (percent > 1):
+            print("you passed a dry threshold outside of 0 - 1")
+            return DRY_MAX
+
+        return percent * (DRY_MAX - WET_MAX) + WET_MAX
 
 
 if __name__ == "__main__":
