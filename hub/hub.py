@@ -8,7 +8,7 @@ import json
 import threading
 import logging
 import datetime
-import GPIO
+import RPi.GPIO as GPIO
 from services import Services
 from scheduler import startScheduler
 from pathlib import Path
@@ -17,7 +17,8 @@ sys.path.append(os.path.join(os.path.realpath(os.path.dirname(__file__)), ".."))
 
 import contract.contract as contract
 from network462 import ControlHubServer
-import arduino.arduinoSystemClient as arduino
+
+# import arduino.arduinoSystemClient as arduino
 from enum import Enum
 
 
@@ -164,6 +165,16 @@ class Hub:
                             ) < 0.1:
                                 self.planterPump.enabled = False
                                 newState["control"]["planterEnabled"] = False
+                                continue
+
+                            if (
+                                sum(self.state["dashboard"]["moisture"][:4]) / 4
+                                < self.state["dashboard"]["moistureThreshold"]
+                                and self.state["control"]["planterEnabled"]
+                            ):
+                                self.planterPump.on(
+                                    self.state["dashboard"]["pumpDuration"]
+                                )
 
                         except Exception as err:
                             logging.error(f"Error setting hub state: {err}")
