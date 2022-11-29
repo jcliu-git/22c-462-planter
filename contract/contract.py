@@ -397,7 +397,7 @@ def default_hub_state() -> IHubState:
         },
         "control": {
             "planterEnabled": True,
-            "hydroponicEnabled": True,
+            "hydroponicEnabled": False,
             "dryThreshold": 0.7,
             "flowTime": 3.0,
             "resevoirHeight": 245,

@@ -106,7 +106,7 @@ class Hub:
         return (
             self.state["control"]["emptyResevoirHeight"]
             - self.state["dashboard"]["waterLevel"]["distance"]
-        ) / self.state["control"]["resevoirHeight"]
+        ) / self.state["control"]["resevoirHeight"] < 0.1
 
     def shouldPump(self):
         return (
@@ -147,6 +147,8 @@ class Hub:
 
                         if self.resevoirLow():
                             self.state["control"]["planterEnabled"] = False
+                        else:
+                            self.state["control"]["planterEnabled"] = True
 
                         websockets.broadcast(
                             hub.websockets.values(), json.dumps(self.state)
