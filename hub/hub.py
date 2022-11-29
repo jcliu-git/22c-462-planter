@@ -88,13 +88,13 @@ class PumpController:
 class Hub:
     state: contract.IHubState
     randomMoisture: bool = False
-    planterPump: PumpController(pin=21, debounce=30)
-    hydroponicPump = PumpController(pin=20, debounce=-1)
 
     def __init__(self, state: contract.IHubState = contract.default_hub_state()):
         self.state = state
         self.hub = ControlHubServer("0.0.0.0", 32132)
         self.services = Services(self)
+        self.planterPump = PumpController(pin=21, debounce=30)
+        self.hydroponicPump = PumpController(pin=20, debounce=-1)
 
     def reset(self):
         self.state = contract.default_hub_state()
@@ -104,6 +104,7 @@ class Hub:
         stream = hub.stream()
 
         async for message in stream:
+            #print(message)
             try:
                 if message.system == contract.System.MONITORING:
                     if message.type == contract.MessageType.TEMPERATURE:
@@ -129,14 +130,14 @@ class Hub:
                         websockets.broadcast(
                             hub.websockets.values(), json.dumps(self.state)
                         )
-
                         if sum(
-                            self.state["dashboard"]["moisture"][:4]
-                        ) / 4 < self.dryThresholdFromPercent(
+                            [self.state['dashboard']['moisture'][f'sensor{x}'] for x in range(1,9)]
+                        ) / 4 > self.dryThresholdFromPercent(
                             self.state["control"]["dryThreshold"] / 100
                         ):
-                            self.state["control"]["dryThreshold"] = True
-                            self.planterPump.on(self.state["dashboard"]["pumpDuration"])
+                            self.planterPump.on(self.state["control"]["flowTime"])
+                        else:
+                            self.planterPump.off()
 
                 if message.system == contract.System.CAMERA:
                     if message.type == contract.MessageType.PHOTO_CAPTURED:
@@ -164,20 +165,22 @@ class Hub:
                                 )
                                 / newState["control"]["resevoirHeight"]
                             ) < 0.1:
-                                self.planterPump.enabled = False
                                 newState["control"]["planterEnabled"] = False
                                 continue
+                            
 
                             if (
-                                sum(self.state["dashboard"]["moisture"][:4]) / 4
-                                < self.dryThresholdFromPercent(
+                                sum([self.state['dashboard']['moisture'][f'sensor{x}'] for x in range(1,9)]) / 4
+                                > self.dryThresholdFromPercent(
                                     self.state["control"]["dryThreshold"] / 100
                                 )
                                 and self.state["control"]["planterEnabled"]
                             ):
                                 self.planterPump.on(
-                                    self.state["dashboard"]["pumpDuration"]
+                                    self.state["control"]["flowTime"]
                                 )
+                            else:
+                                self.planterPump.off()
 
                         except Exception as err:
                             logging.error(f"Error setting hub state: {err}")
@@ -196,7 +199,7 @@ class Hub:
         while True:
             await asyncio.sleep(5)
 
-    def dryThresholdFromPercent(percent: float):
+    def dryThresholdFromPercent(self, percent: float):
         DRY_MAX = 495
         WET_MAX = 190
         if (percent < 0) or (percent > 1):

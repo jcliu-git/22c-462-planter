@@ -193,7 +193,7 @@ class MoistureReadingMessage(Message[MoistureData]):
             timestamp = now()
         super().__init__(
             MessageType.MOISTURE_READING,
-            System.SUBSURFACE,
+            System.MONITORING,
             {
                 "sensor1": sensor1,
                 "sensor2": sensor2,
@@ -384,10 +384,10 @@ def default_hub_state() -> IHubState:
                 "sensor2": 101,
                 "sensor3": 229,
                 "sensor4": 488,
-                "sensor5": 2928,
-                "sensor6": 72,
-                "sensor7": 289,
-                "sensor8": 209,
+                "sensor5": 0,
+                "sensor6": 0,
+                "sensor7": 0,
+                "sensor8": 0,
                 "timestamp": now(),
             },
             "light": {"luminosity": 54016, "timestamp": now()},
@@ -398,7 +398,7 @@ def default_hub_state() -> IHubState:
         "control": {
             "planterEnabled": True,
             "hydroponicEnabled": True,
-            "dryThreshold": 500,
+            "dryThreshold": 0.7,
             "flowTime": 3.0,
             "resevoirHeight": 245,
             "emptyResevoirHeight": 250,
