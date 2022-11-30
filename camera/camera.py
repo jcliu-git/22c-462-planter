@@ -22,12 +22,10 @@ client = CameraClient(host="192.168.3.128")
 # devices
 pir = MotionSensor(4)
 camera = PiCamera()
+camera.rotation = 90
 # servos setup
-servo180 = 17  # 180 servo
-servo360 = 27  # 360 servo
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(27, GPIO.OUT)
-servo2 = GPIO.PWM(27, 50)  # continuous servo
+servo180 = pigpio.pi()  # 180 servo
+servo360 = pigpio.pi()  # 360 servo
 pfile = "temp"
 
 
@@ -40,7 +38,7 @@ async def camera_capture(time, phototype, filename):
     camera.capture(filename + ".jpg")
     camera.stop_preview()
 
-    data = contract.PhotoCaptureMessage(filename, phototype, time)
+    data = contract.PhotoCaptureMessage(filename, phototype)
     """
     data = {}
     data["time"] = time
@@ -63,12 +61,12 @@ async def plant_analysis(filename, pfile):
     m_channel1 = pcv.rgb2gray_cmyk(rgb_img=plant1_o, channel="M")
     plant1 = cv2.subtract(y_channel1, m_channel1)
     plant1 = pcv.closing(gray_img=plant1)
-    plant1 = pcv.erode(gray_img=plant1, ksize=15, i=10)
+    plant1 = pcv.erode(gray_img=plant1, ksize=3, i=10)
     plant1 = pcv.closing(gray_img=plant1)
     mask1 = cv2.threshold(plant1, 35, 255, cv2.THRESH_BINARY)[1]
     mask1 = pcv.fill_holes(bin_img=mask1)
     plant1 = pcv.apply_mask(img=plant1_o, mask=mask1, mask_color="white")
-    plant1 = pcv.erode(gray_img=plant1, ksize=15, i=10)
+    plant1 = pcv.erode(gray_img=plant1, ksize=3, i=10)
 
     # Isolate plant in second image
     y_channel2 = pcv.rgb2gray_cmyk(rgb_img=plant2_o, channel="Y")
@@ -80,21 +78,21 @@ async def plant_analysis(filename, pfile):
     mask2 = cv2.threshold(plant2, 35, 255, cv2.THRESH_BINARY)[1]
     mask2 = pcv.fill_holes(bin_img=mask2)
     plant2 = pcv.apply_mask(img=plant2_o, mask=mask2, mask_color="white")
-    plant2 = pcv.erode(gray_img=plant2, ksize=15, i=10)
+    plant2 = pcv.erode(gray_img=plant2, ksize=3, i=10)
 
     # Take difference of both plants
     plantdifference = cv2.subtract(plant1, plant2)
-    plantdifference = pcv.erode(gray_img=plantdifference, ksize=10, i=10)
+    plantdifference = pcv.erode(gray_img=plantdifference, ksize=3, i=10)
 
     # Remove white background noise from difference image
     th = 200 # defines the value below which a pixel is considered "white"
-    white_pixels = np.where(
-        (plantdifference[:, :, 0] > th) & 
-        (plantdifference[:, :, 1] > th) & 
-        (plantdifference[:, :, 2] > th)
-        )
+    #white_pixels = np.where(
+     #   (plantdifference[:, :, 0] > th) & 
+      #  (plantdifference[:, :, 1] > th) & 
+       # (plantdifference[:, :, 2] > th)
+       # )
     # set those pixels to black
-    plantdifference[white_pixels] = [0, 0, 0]
+    #plantdifference[white_pixels] = [0, 0, 0]
     cv2.imwrite(filename + "_growth.jpg", plantdifference)
     return plantdifference
 
@@ -121,7 +119,6 @@ def motion_detect():
 
 
 async def up():
-    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
     servo180.set_servo_pulsewidth(17, 1200)
@@ -131,7 +128,6 @@ async def up():
 
 
 async def center():
-    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
     servo180.set_servo_pulsewidth(17, 1500)
@@ -141,7 +137,6 @@ async def center():
 
 
 async def down():
-    servo180 = pigpio.pi()
     servo180.set_mode(servo180, pigpio.OUTPUT)
     servo180.set_PWM_frequency(17, 50)
     servo180.set_servo_pulsewidth(17, 1850)
@@ -151,7 +146,6 @@ async def down():
 
 
 async def right90():
-    servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
     servo360.set_servo_pulsewidth(27, 700)
@@ -162,7 +156,6 @@ async def right90():
 
 
 async def right45():
-    servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
     servo360.set_servo_pulsewidth(27, 1100)
@@ -173,7 +166,6 @@ async def right45():
 
 
 async def left45():
-    servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
     servo360.set_servo_pulsewidth(27, 1900)
@@ -184,7 +176,6 @@ async def left45():
 
 
 async def left90():
-    servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
     servo360.set_servo_pulsewidth(27, 2000)
@@ -194,7 +185,6 @@ async def left90():
     time.sleep(1)
 
 async def center2():
-    servo360 = pigpio.pi()
     servo360.set_mode(27, pigpio.OUTPUT)
     servo360.set_PWM_frequency(27, 50)
     servo360.set_servo_pulsewidth(27, 1500)
@@ -215,6 +205,7 @@ async def main():
         db_time = datetime.now()
         current_time = time.strftime("%H-%M-%S", t)
         if cooldown == False:
+            print("running")
             await center()
             await center2()
             camera.start_preview()
@@ -230,6 +221,7 @@ async def main():
                 #checks to see if there is a new entity
                 threshold = await motion_detect()
                 if threshold > 200:
+                    print("Motion Detected")
                     filename = current_date + "_motion_image_" + current_time
                     monitor_event = await camera_capture(current_time, "motion", filename)
                     await client.sendImage(filename + ".jpg", monitor_event)
