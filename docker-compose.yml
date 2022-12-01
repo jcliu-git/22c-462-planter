@@ -20,22 +20,27 @@ services:
   hub:
     container_name: hub_container
     build: ./hub
+    volumes:
+      - pictures:/hub/temp
     networks:
       - my-net
     depends_on:                                                                                    
       - db
-  # ui:
-  #   container_name: ui_container
-  #   build: ./ui
-  #   ports:
-  #     - 3000:3000
-  #   networks:
-  #     - my-net
-  #   depends_on:                                                                                    
-  #     - db  
+  ui:
+    container_name: ui_container
+    build: ./ui
+    volumes:
+      - pictures:/ui/public
+    ports:
+      - 3000:3000
+    networks:
+      - my-net
+    depends_on:                                                                                    
+      - db  
 
 volumes:
   db-data:
+  pictures:
 
 networks:
   my-net:
