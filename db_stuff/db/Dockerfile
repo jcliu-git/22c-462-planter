@@ -1,10 +1,13 @@
 FROM postgres:14.2-alpine
 
-WORKDIR /scripts
+WORKDIR /db
 
 ENV POSTGRES_PASSWORD postgres
 ENV POSTGRES_DB garden
 # Do not specifiy POSTGRES_USER so defaulted to postgres
+
+#Install Python
+RUN apt-get update && apt-get install -y python
 
 #Copying all files into container 
 COPY . .

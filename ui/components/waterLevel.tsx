@@ -2,10 +2,84 @@ import { Box, CustomTheme, Paper, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch, RootState, store } from "../models/store";
+import Image from '../public/wave.png';
+import Particles, { ISourceOptions } from "react-tsparticles";
 
 export function WaterLevel() {
   const theme = useTheme<CustomTheme>();
-
+  const options: ISourceOptions = {
+    background: {
+      color: "#0d47a1",
+    },
+    interactivity: {
+      events: {
+        onClick: {
+          enable: true,
+          mode: "push",
+        },
+        onHover: {
+          enable: true,
+          mode: "repulse",
+        },
+        resize: true,
+      },
+      modes: {
+        bubble: {
+          distance: 400,
+          duration: 2,
+          opacity: 0.8,
+          size: 40,
+        },
+        push: {
+          quantity: 4,
+        },
+        repulse: {
+          distance: 200,
+          duration: 0.4,
+        },
+      },
+    },
+    particles: {
+      color: {
+        value: "#ffffff",
+      },
+      links: {
+        color: "#ffffff",
+        distance: 150,
+        enable: true,
+        opacity: 0.5,
+        width: 1,
+      },
+      collisions: {
+        enable: true,
+      },
+      move: {
+        direction: "none",
+        enable: true,
+        outMode: "bounce",
+        random: false,
+        speed: 6,
+        straight: false,
+      },
+      number: {
+        density: {
+          enable: true,
+          value_area: 800,
+        },
+        value: 80,
+      },
+      opacity: {
+        value: 0.5,
+      },
+      shape: {
+        type: "circle",
+      },
+      size: {
+        random: true,
+        value: 5,
+      },
+    },
+  };
   const waterLevelState = useSelector(
     (state: RootState) => state.hub.dashboard.waterLevel
   );
@@ -38,41 +112,7 @@ export function WaterLevel() {
       <Typography variant="h6" sx={{ marginBottom: theme.spacing(1) }}>
         Resevoir Water Level
       </Typography>
-      <Box
-        id="container"
-        sx={{
-          height: "100px",
-          border: "3px solid black",
-          background: `rgba(0,0,0, 0.5)`,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          position: "relative",
-        }}
-      >
-        <Typography
-          display="block"
-          position="absolute"
-          top="50%"
-          left="50%"
-          sx={{
-            color: "white",
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          {Math.round(waterLevelPercent)}%
-        </Typography>
-        <Box
-          id="water"
-          sx={{
-            height: "100%",
-            width: `${waterLevelPercent}%`,
-            background: theme.palette.secondary.main,
-          }}
-        ></Box>
-      </Box>
+      <Particles options={options} />;
     </Paper>
   );
 }
